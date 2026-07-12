@@ -13,20 +13,21 @@ import {
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-// Your exact Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
-  authDomain: "pkd-qms.firebaseapp.com",
-  databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "pkd-qms",
-  storageBucket: "pkd-qms.firebasestorage.app",
-  messagingSenderId: "121516361841",
-  appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
-  measurementId: "G-RWMC278HEC"
-};
+const firebaseConfig = typeof __firebase_config !== 'undefined'
+  ? JSON.parse(__firebase_config)
+  : {
+    apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
+    authDomain: "pkd-qms.firebaseapp.com",
+    databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pkd-qms",
+    storageBucket: "pkd-qms.firebasestorage.app",
+    messagingSenderId: "121516361841",
+    appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
+    measurementId: "G-RWMC278HEC"
+  };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -93,6 +94,14 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
     </div>
   );
 };
+
+function ActivityIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
+}
 
 const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
   const [step, setStep] = useState(1);
@@ -244,6 +253,7 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
 const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
   const [setupDone, setSetupDone] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [previousQueues, setPreviousQueues] = useState(null);
 
   const images = [
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200",
@@ -251,6 +261,73 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
     "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"
   ];
 
+  // Configure Text-to-Speech
+  const speakNumber = (room, number) => {
+    if (!window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel(); // Stop current speech
+
+    // Spacing out digits so the TTS reads them one by one (e.g. "1 0 0 4" instead of "One thousand and four")
+    const digitString = number.toString().split('').join(' ');
+    const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'ms-MY'; // Set language to Malay
+
+    // Find Malay or Indonesian voice
+    const voices = window.speechSynthesis.getVoices();
+    const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
+    if (malayVoice) {
+      utterance.voice = malayVoice;
+    }
+
+    utterance.rate = 0.85; // Speak slightly slower for clarity
+    utterance.pitch = 1.0;
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Pre-load voices on component mount
+  useEffect(() => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
+
+  // Monitor the queue and trigger voice when a number changes
+  useEffect(() => {
+    if (!setupDone || !selectedClinic || !selectedDept) return;
+
+    const currentData = queues[selectedClinic]?.[selectedDept];
+    if (!currentData) return;
+
+    if (!previousQueues) {
+      setPreviousQueues(currentData);
+      return;
+    }
+
+    let roomChanged = null;
+    let newNumber = null;
+
+    for (const [room, number] of Object.entries(currentData)) {
+      if (previousQueues[room] !== number) {
+        roomChanged = room;
+        newNumber = number;
+        break;
+      }
+    }
+
+    if (roomChanged && newNumber && newNumber !== "0000") {
+      speakNumber(roomChanged, newNumber);
+    }
+
+    setPreviousQueues(currentData);
+
+  }, [queues, setupDone, selectedClinic, selectedDept, previousQueues]);
+
+  // Gallery slideshow logic
   useEffect(() => {
     if (!setupDone) return;
     const timer = setInterval(() => {
@@ -391,43 +468,63 @@ export default function App() {
   const [queues, setQueues] = useState(generateInitialQueues());
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [users, setUsers] = useState(MOCK_USERS);
+  const [user, setUser] = useState(null);
 
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
   const [dbStatus, setDbStatus] = useState('connecting');
 
+  // Hardcode database reference for perfect sync across all domains
+  const getDocRef = () => {
+    return doc(db, 'qms', 'state');
+  };
+
   useEffect(() => {
-    // 1. Sign in securely (anonymous) so Firebase allows us to read/write
-    signInAnonymously(auth).catch(err => {
-      console.error("Auth failed:", err);
-      setDbStatus('error');
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Authentication failed:", err);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
+    return () => unsubscribe();
+  }, []);
 
-    // 2. Listen to the database in real-time
-    const qmsDocRef = doc(db, 'qms', 'state');
+  useEffect(() => {
+    if (!user) return;
 
+    const qmsDocRef = getDocRef();
     const unsubscribe = onSnapshot(
       qmsDocRef,
       (docSnap) => {
+        setDbStatus('connected');
         if (docSnap.exists()) {
           setQueues(prev => ({ ...generateInitialQueues(), ...docSnap.data() }));
-          setDbStatus('connected');
         } else {
-          // If database is completely empty, set up the initial structure
-          setDoc(qmsDocRef, generateInitialQueues(), { merge: true })
-            .then(() => setDbStatus('connected'))
-            .catch(err => setDbStatus('error'));
+          setDoc(qmsDocRef, generateInitialQueues()).catch(err => {
+            console.error("Init error:", err);
+            setDbStatus('error');
+          });
         }
       },
       (error) => {
-        console.error("Firebase Sync Error:", error);
+        console.error("Sync error:", error);
         setDbStatus('error');
       }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -441,7 +538,11 @@ export default function App() {
   };
 
   const updateQueueNumber = async (clinic, dept, room, newNumber) => {
-    // 1. Instantly update the local screen (Optimistic UI)
+    if (!user) {
+      showModal("Error", "Not connected to database. Reconnecting...", "info");
+      return;
+    }
+
     setQueues(prev => ({
       ...prev,
       [clinic]: {
@@ -453,18 +554,15 @@ export default function App() {
       }
     }));
 
-    // 2. Send the new number to Firebase so all TVs see it
     try {
-      const qmsDocRef = doc(db, 'qms', 'state');
       await setDoc(
-        qmsDocRef,
+        getDocRef(),
         { [clinic]: { [dept]: { [room]: newNumber } } },
-        { merge: true } // Merge true ensures we don't delete other rooms!
+        { merge: true }
       );
     } catch (err) {
       console.error("Failed to update database:", err);
       showModal("Database Error", "Check Firebase Rules! Error: " + err.message, "info");
-      setDbStatus('error');
     }
   };
 
@@ -633,12 +731,4 @@ export default function App() {
       <Modal {...modalConfig} />
     </>
   );
-}
-
-function ActivityIcon(props) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  )
 }
