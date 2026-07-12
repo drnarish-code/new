@@ -654,7 +654,17 @@ export default function App() {
 
           <div className="space-y-4">
             <button
-              onClick={() => setCurrentView('admin')}
+              onClick={() => {
+                if (user?.email === 'dr.narish@gmail.com') {
+                  setCurrentView('admin');
+                } else {
+                  showModal(
+                    'Akses Ditolak',
+                    'Hanya Superadmin (dr.narish@gmail.com) dibenarkan untuk mengakses portal ini.',
+                    'info'
+                  );
+                }
+              }}
               className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
             >
               <div className="flex items-center">
