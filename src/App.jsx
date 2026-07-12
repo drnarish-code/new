@@ -447,22 +447,22 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
             <h3 className="text-3xl font-bold text-slate-300 uppercase text-right">Nombor</h3>
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
             {Object.entries(currentRoomsData).map(([room, number], index) => (
               <div
                 key={room}
-                className={`grid grid-cols-2 py-8 px-8 border-b border-slate-800 items-center ${index % 2 === 0 ? 'bg-slate-900/50' : 'bg-slate-800/20'
+                className={`grid grid-cols-2 py-3 px-8 border-b border-slate-800 items-center ${index % 2 === 0 ? 'bg-slate-900/50' : 'bg-slate-800/20'
                   }`}
               >
-                <div className="text-4xl font-bold text-emerald-400">
+                <div className="text-2xl font-bold text-emerald-400">
                   {room}
                 </div>
-                <div className="text-6xl font-extrabold text-white text-right tracking-wider tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                <div className="text-5xl font-extrabold text-white text-right tracking-wider tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
                   {number}
                 </div>
               </div>
             ))}
-            <div className="flex-1 bg-slate-900/50"></div>
+            <div className="flex-1 bg-slate-900/50 min-h-[50px]"></div>
           </div>
         </div>
       </main>
