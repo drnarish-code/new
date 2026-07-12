@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Monitor,
   Smartphone,
@@ -7,11 +7,32 @@ import {
   Building2,
   LogOut,
   ChevronRight,
-  CheckCircle2,
   XCircle,
   Play,
   Volume2
 } from 'lucide-react';
+
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
+
+// Safely handle both the local Vercel deployment and the browser preview environment
+const firebaseConfig = typeof __firebase_config !== 'undefined'
+  ? JSON.parse(__firebase_config)
+  : {
+    apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
+    authDomain: "pkd-qms.firebaseapp.com",
+    databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pkd-qms",
+    storageBucket: "pkd-qms.firebasestorage.app",
+    messagingSenderId: "121516361841",
+    appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
+    measurementId: "G-RWMC278HEC"
+  };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const DEFAULT_CLINICS = [
   "Klinik Kesihatan Padang Rumbia",
@@ -26,7 +47,6 @@ const DEFAULT_CLINICS = [
 
 const DEPARTMENTS = ["OPD", "MCH", "Farmasi", "Makmal"];
 
-// Generate some mock rooms and initial queue state
 const generateInitialQueues = () => {
   const queues = {};
   DEFAULT_CLINICS.forEach(clinic => {
@@ -42,14 +62,12 @@ const generateInitialQueues = () => {
   return queues;
 };
 
-// Mock Users for Admin Dashboard
 const MOCK_USERS = [
   { id: 1, name: "Dr. Ahmad", role: "Input", status: "Approved", clinic: "Klinik Kesihatan Chini" },
   { id: 2, name: "Nurse Siti", role: "Input", status: "Pending", clinic: "Klinik Kesihatan Bandar Pekan" },
   { id: 3, name: "Admin TV", role: "Output", status: "Approved", clinic: "All" }
 ];
 
-// Custom Modal to replace standard alert()/confirm()
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
   return (
@@ -79,24 +97,66 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('login'); // login, admin, input, output
+  const [currentView, setCurrentView] = useState('login');
   const [queues, setQueues] = useState(generateInitialQueues());
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [users, setUsers] = useState(MOCK_USERS);
+  const [user, setUser] = useState(null);
 
-  // Selection state for Input/Output screens
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
-
-  // Global modal state
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
+
+  // Get dynamic pathing to support both Local/Vercel and Preview Canvas
+  const getDocRef = () => {
+    if (typeof __app_id !== 'undefined') {
+      return doc(db, 'artifacts', __app_id, 'public', 'data', 'qms_state', 'main');
+    }
+    return doc(db, 'qms', 'state'); // The clean path for your Vercel/Firebase setup
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Authentication failed:", err);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return; // Guard clause: Wait for auth before querying
+
+    const qmsDocRef = getDocRef();
+    const unsubscribe = onSnapshot(
+      qmsDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setQueues(prev => ({ ...generateInitialQueues(), ...docSnap.data() }));
+        } else {
+          setDoc(qmsDocRef, generateInitialQueues()); // Initialize if empty
+        }
+      },
+      (error) => console.error("Sync error:", error)
+    );
+
+    return () => unsubscribe();
+  }, [user]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
-      isOpen: true,
-      title,
-      message,
-      type,
+      isOpen: true, title, message, type,
       onConfirm: () => {
         if (onConfirm) onConfirm();
         setModalConfig(prev => ({ ...prev, isOpen: false }));
@@ -105,7 +165,13 @@ export default function App() {
     });
   };
 
-  const updateQueueNumber = (clinic, dept, room, newNumber) => {
+  const updateQueueNumber = async (clinic, dept, room, newNumber) => {
+    if (!user) {
+      showModal("Error", "Not connected to database. Reconnecting...", "info");
+      return;
+    }
+
+    // Optimistic UI update
     setQueues(prev => ({
       ...prev,
       [clinic]: {
@@ -116,6 +182,18 @@ export default function App() {
         }
       }
     }));
+
+    // Send to Firebase
+    try {
+      await setDoc(
+        getDocRef(),
+        { [clinic]: { [dept]: { [room]: newNumber } } },
+        { merge: true } // Merge true ensures we only overwrite this specific room's data
+      );
+    } catch (err) {
+      console.error("Failed to update database:", err);
+      showModal("Sync Error", "Failed to send number to screens.", "info");
+    }
   };
 
   const renderLogin = () => (
@@ -140,7 +218,7 @@ export default function App() {
               </div>
               <div className="ml-4 text-left">
                 <p className="text-lg font-bold text-slate-900">Superadmin</p>
-                <p className="text-sm text-slate-500">System management & users</p>
+                <p className="text-sm text-slate-500">System management</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
@@ -172,7 +250,7 @@ export default function App() {
               </div>
               <div className="ml-4 text-left">
                 <p className="text-lg font-bold text-slate-900">TV Display</p>
-                <p className="text-sm text-slate-500">Public queue display screen</p>
+                <p className="text-sm text-slate-500">Public waiting screen</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
@@ -195,7 +273,6 @@ export default function App() {
       </header>
 
       <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
-        {/* User Management */}
         <section className="bg-white rounded-2xl shadow-sm border p-6">
           <div className="flex items-center mb-6">
             <Users className="h-6 w-6 text-blue-600 mr-2" />
@@ -236,7 +313,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* Facilities Management */}
         <section className="bg-white rounded-2xl shadow-sm border p-6">
           <div className="flex items-center mb-6">
             <Building2 className="h-6 w-6 text-purple-600 mr-2" />
@@ -252,16 +328,13 @@ export default function App() {
               </div>
             ))}
           </div>
-          <button className="mt-4 w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-semibold hover:border-blue-500 hover:text-blue-600 transition-colors">
-            + Add New Facility
-          </button>
         </section>
       </main>
     </div>
   );
 
   const InputScreen = () => {
-    const [step, setStep] = useState(1); // 1: Setup, 2: Numpad
+    const [step, setStep] = useState(1);
     const [localRoom, setLocalRoom] = useState('Bilik 1');
     const [currentInput, setCurrentInput] = useState('');
 
@@ -276,7 +349,7 @@ export default function App() {
         'confirm',
         () => {
           updateQueueNumber(selectedClinic, selectedDept, localRoom, currentInput);
-          setCurrentInput(''); // reset after call
+          setCurrentInput('');
         }
       );
     };
@@ -343,11 +416,9 @@ export default function App() {
       );
     }
 
-    // Numpad Screen
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col sm:justify-center p-4">
         <div className="w-full max-w-sm mx-auto flex flex-col h-full sm:h-auto sm:border sm:border-slate-700 sm:rounded-3xl sm:p-6 sm:bg-slate-800">
-          {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{selectedDept} • {localRoom}</p>
@@ -358,14 +429,12 @@ export default function App() {
             </button>
           </div>
 
-          {/* Display */}
           <div className="bg-slate-950 rounded-2xl p-6 mb-8 flex justify-center items-center shadow-inner border border-slate-700 min-h-[120px]">
             <span className="text-6xl font-bold tracking-widest text-emerald-400">
               {currentInput || '----'}
             </span>
           </div>
 
-          {/* Numpad */}
           <div className="grid grid-cols-3 gap-3 mb-6 flex-1 content-end">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
               <button
@@ -396,7 +465,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* Action */}
           <button
             onClick={handleCallNext}
             className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/50"
@@ -413,11 +481,10 @@ export default function App() {
     const [setupDone, setSetupDone] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-    // Gallery images rotating every 12 seconds
     const images = [
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200", // Hospital/Clinic abstract
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200", // Medical cross
-      "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"  // Waiting area abstract
+      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"
     ];
 
     useEffect(() => {
@@ -484,7 +551,6 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden font-sans">
-        {/* Header */}
         <header className="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-lg">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-wide uppercase">
@@ -505,9 +571,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 flex flex-col md:flex-row">
-          {/* Left: Media/Gallery */}
           <div className="flex-1 relative bg-slate-950 flex items-center justify-center p-8 overflow-hidden">
             {images.map((img, index) => (
               <img
@@ -518,10 +582,7 @@ export default function App() {
                   }`}
               />
             ))}
-            {/* Overlay Gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-
-            {/* Optional text over image */}
             <div className="absolute bottom-10 left-10 z-10">
               <p className="text-white/80 text-2xl font-semibold bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm">
                 Sila tunggu nombor anda dipanggil
@@ -529,7 +590,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right: Queue Table */}
           <div className="w-full md:w-[500px] lg:w-[600px] bg-slate-900 border-l border-slate-800 flex flex-col">
             <div className="grid grid-cols-2 bg-slate-800 py-6 px-8 border-b border-slate-700 shadow-md">
               <h3 className="text-3xl font-bold text-slate-300 uppercase">Bilik</h3>
@@ -551,8 +611,6 @@ export default function App() {
                   </div>
                 </div>
               ))}
-
-              {/* Fill remaining space gracefully if few rooms */}
               <div className="flex-1 bg-slate-900/50"></div>
             </div>
           </div>
@@ -567,7 +625,6 @@ export default function App() {
       {currentView === 'admin' && renderAdmin()}
       {currentView === 'input' && <InputScreen />}
       {currentView === 'output' && <OutputScreen />}
-
       <Modal {...modalConfig} />
     </>
   );
@@ -575,18 +632,7 @@ export default function App() {
 
 function ActivityIcon(props) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
     </svg>
   )
