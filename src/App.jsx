@@ -47,13 +47,13 @@ const DEFAULT_CLINICS = [
   "Klinik Komuniti Kuala Pahang"
 ];
 
-const DEPARTMENTS = ["OPD", "MCH", "Farmasi", "Makmal"];
+const DEFAULT_DEPARTMENTS = ["OPD", "MCH", "Farmasi", "Makmal"];
 
-const generateInitialQueues = () => {
+const generateInitialQueues = (clinicsList = DEFAULT_CLINICS, deptsList = DEFAULT_DEPARTMENTS) => {
   const queues = {};
-  DEFAULT_CLINICS.forEach(clinic => {
+  clinicsList.forEach(clinic => {
     queues[clinic] = {};
-    DEPARTMENTS.forEach(dept => {
+    deptsList.forEach(dept => {
       queues[clinic][dept] = {
         "Bilik 1": "0000",
         "Bilik 2": "0000",
@@ -109,7 +109,7 @@ function ActivityIcon(props) {
 // --------------------------------------------------------
 // INPUT SCREEN (STAFF)
 // --------------------------------------------------------
-const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
+const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
   const [currentInput, setCurrentInput] = useState('');
@@ -162,7 +162,7 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
                 <option value="">Pilih Jabatan...</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
@@ -260,7 +260,7 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
 // --------------------------------------------------------
 // OUTPUT SCREEN (TV DISPLAY)
 // --------------------------------------------------------
-const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
+const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
   const [setupDone, setSetupDone] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
@@ -370,7 +370,7 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
                 <option value="">Choose...</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
@@ -395,7 +395,7 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
     );
   }
 
-  const currentRoomsData = queues[selectedClinic]?.[selectedDept] || {};
+  const currentRoomsData = queues[selectedClinic]?.[selectedDept] || { "Bilik 1": "----", "Bilik 2": "----", "Bilik 3": "----" };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden font-sans">
@@ -476,9 +476,14 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
 // --------------------------------------------------------
 export default function App() {
   const [currentView, setCurrentView] = useState('login');
-  const [queues, setQueues] = useState(generateInitialQueues());
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
+  const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
+  const [queues, setQueues] = useState(generateInitialQueues(clinics, departments));
   const [users, setUsers] = useState(MOCK_USERS);
+
+  // Admin input states
+  const [newClinicName, setNewClinicName] = useState('');
+  const [newDeptName, setNewDeptName] = useState('');
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -507,14 +512,29 @@ export default function App() {
     if (!user) return;
 
     const qmsDocRef = getDocRef();
-    const unsubscribe = onSnapshot(
+    const configRef = doc(db, 'qms', 'config');
+
+    // 1. Listen for dynamic config changes (Clinics & Departments)
+    const unsubConfig = onSnapshot(configRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.clinics) setClinics(data.clinics);
+        if (data.departments) setDepartments(data.departments);
+      } else {
+        // Initialize config if it doesn't exist
+        setDoc(configRef, { clinics: DEFAULT_CLINICS, departments: DEFAULT_DEPARTMENTS }, { merge: true });
+      }
+    });
+
+    // 2. Listen for Queue Number changes
+    const unsubQueues = onSnapshot(
       qmsDocRef,
       (docSnap) => {
         setDbStatus('connected');
         if (docSnap.exists()) {
-          setQueues(prev => ({ ...generateInitialQueues(), ...docSnap.data() }));
+          setQueues(prev => ({ ...generateInitialQueues(clinics, departments), ...docSnap.data() }));
         } else {
-          setDoc(qmsDocRef, generateInitialQueues()).catch(err => {
+          setDoc(qmsDocRef, generateInitialQueues(clinics, departments)).catch(err => {
             console.error("Init error:", err);
             setDbStatus('error');
           });
@@ -526,8 +546,11 @@ export default function App() {
       }
     );
 
-    return () => unsubscribe();
-  }, [user]);
+    return () => {
+      unsubConfig();
+      unsubQueues();
+    };
+  }, [user, clinics, departments]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -587,6 +610,39 @@ export default function App() {
       console.error("Failed to update database:", err);
       showModal("Database Error", "Check Firebase Rules! Error: " + err.message, "info");
     }
+  };
+
+  // --- ADMIN FUNCTIONS ---
+  const addFacility = async () => {
+    if (!newClinicName.trim()) return;
+    const updatedClinics = [...clinics, newClinicName.trim()];
+    setClinics(updatedClinics);
+    setNewClinicName('');
+    await setDoc(doc(db, 'qms', 'config'), { clinics: updatedClinics }, { merge: true });
+  };
+
+  const removeFacility = async (clinicToRemove) => {
+    showModal('Padam Klinik', `Adakah anda pasti mahu memadam ${clinicToRemove}?`, 'confirm', async () => {
+      const updatedClinics = clinics.filter(c => c !== clinicToRemove);
+      setClinics(updatedClinics);
+      await setDoc(doc(db, 'qms', 'config'), { clinics: updatedClinics }, { merge: true });
+    });
+  };
+
+  const addDepartment = async () => {
+    if (!newDeptName.trim()) return;
+    const updatedDepts = [...departments, newDeptName.trim()];
+    setDepartments(updatedDepts);
+    setNewDeptName('');
+    await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
+  };
+
+  const removeDepartment = async (deptToRemove) => {
+    showModal('Padam Jabatan', `Adakah anda pasti mahu memadam ${deptToRemove}?`, 'confirm', async () => {
+      const updatedDepts = departments.filter(d => d !== deptToRemove);
+      setDepartments(updatedDepts);
+      await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
+    });
   };
 
   // Render Logic
@@ -773,16 +829,57 @@ export default function App() {
             </section>
 
             <section className="bg-white rounded-2xl shadow-sm border p-6">
-              <div className="flex items-center mb-6">
-                <Building2 className="h-6 w-6 text-purple-600 mr-2" />
-                <h2 className="text-lg font-bold">Facilities Database</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <Building2 className="h-6 w-6 text-purple-600 mr-2" />
+                  <h2 className="text-lg font-bold">Senarai Klinik (Facilities)</h2>
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Klinik Baru..."
+                    value={newClinicName}
+                    onChange={(e) => setNewClinicName(e.target.value)}
+                    className="border p-2 rounded-lg text-sm w-40 md:w-56 focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                  <button onClick={addFacility} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add</button>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {clinics.map((clinic, idx) => (
-                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center">
+                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
                     <span className="font-medium text-slate-700">{clinic}</span>
-                    <button className="text-slate-400 hover:text-red-500">
+                    <button onClick={() => removeFacility(clinic)} className="text-slate-400 hover:text-red-500 transition-colors">
                       <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <Settings className="h-6 w-6 text-orange-600 mr-2" />
+                  <h2 className="text-lg font-bold">Jabatan / Zon (Departments)</h2>
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    placeholder="Jabatan Baru..."
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    className="border p-2 rounded-lg text-sm w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
+                  />
+                  <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add</button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {departments.map((dept, idx) => (
+                  <div key={idx} className="px-4 py-2 border rounded-full flex items-center bg-slate-50 shadow-sm space-x-3">
+                    <span className="font-medium text-slate-700">{dept}</span>
+                    <button onClick={() => removeDepartment(dept)} className="text-slate-400 hover:text-red-500 transition-colors">
+                      <XCircle className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -790,6 +887,31 @@ export default function App() {
             </section>
           </main>
         </div>
+      )}
+
+      {currentView === 'input' && (
+        <InputScreen
+          clinics={clinics}
+          departments={departments}
+          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
+          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
+          setCurrentView={setCurrentView}
+          showModal={showModal}
+          updateQueueNumber={updateQueueNumber}
+          dbStatus={dbStatus}
+        />
+      )}
+
+      {currentView === 'output' && (
+        <OutputScreen
+          clinics={clinics}
+          departments={departments}
+          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
+          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
+          setCurrentView={setCurrentView}
+          queues={queues}
+          dbStatus={dbStatus}
+        />
       )}
 
       {currentView === 'input' && (
