@@ -13,22 +13,20 @@ import {
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-// Safely handle both the local Vercel deployment and the browser preview environment
-const firebaseConfig = typeof __firebase_config !== 'undefined'
-  ? JSON.parse(__firebase_config)
-  : {
-    apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
-    authDomain: "pkd-qms.firebaseapp.com",
-    databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "pkd-qms",
-    storageBucket: "pkd-qms.firebasestorage.app",
-    messagingSenderId: "121516361841",
-    appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
-    measurementId: "G-RWMC278HEC"
-  };
+// Your exact Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
+  authDomain: "pkd-qms.firebaseapp.com",
+  databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pkd-qms",
+  storageBucket: "pkd-qms.firebasestorage.app",
+  messagingSenderId: "121516361841",
+  appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
+  measurementId: "G-RWMC278HEC"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -101,58 +99,43 @@ export default function App() {
   const [queues, setQueues] = useState(generateInitialQueues());
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [users, setUsers] = useState(MOCK_USERS);
-  const [user, setUser] = useState(null);
 
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
-
-  // Get dynamic pathing to support both Local/Vercel and Preview Canvas
-  const getDocRef = () => {
-    if (typeof __app_id !== 'undefined') {
-      return doc(db, 'artifacts', __app_id, 'public', 'data', 'qms_state', 'main');
-    }
-    return doc(db, 'qms', 'state'); // The clean path for your Vercel/Firebase setup
-  };
+  const [dbStatus, setDbStatus] = useState('connecting');
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Authentication failed:", err);
-      }
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    // 1. Sign in securely (anonymous) so Firebase allows us to read/write
+    signInAnonymously(auth).catch(err => {
+      console.error("Auth failed:", err);
+      setDbStatus('error');
     });
-    return () => unsubscribe();
-  }, []);
 
-  useEffect(() => {
-    if (!user) return; // Guard clause: Wait for auth before querying
+    // 2. Listen to the database in real-time
+    const qmsDocRef = doc(db, 'qms', 'state');
 
-    const qmsDocRef = getDocRef();
     const unsubscribe = onSnapshot(
       qmsDocRef,
       (docSnap) => {
         if (docSnap.exists()) {
           setQueues(prev => ({ ...generateInitialQueues(), ...docSnap.data() }));
+          setDbStatus('connected');
         } else {
-          setDoc(qmsDocRef, generateInitialQueues()); // Initialize if empty
+          // If database is completely empty, set up the initial structure
+          setDoc(qmsDocRef, generateInitialQueues(), { merge: true })
+            .then(() => setDbStatus('connected'))
+            .catch(err => setDbStatus('error'));
         }
       },
-      (error) => console.error("Sync error:", error)
+      (error) => {
+        console.error("Firebase Sync Error:", error);
+        setDbStatus('error');
+      }
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, []);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -166,12 +149,7 @@ export default function App() {
   };
 
   const updateQueueNumber = async (clinic, dept, room, newNumber) => {
-    if (!user) {
-      showModal("Error", "Not connected to database. Reconnecting...", "info");
-      return;
-    }
-
-    // Optimistic UI update
+    // 1. Instantly update the local screen (Optimistic UI)
     setQueues(prev => ({
       ...prev,
       [clinic]: {
@@ -183,16 +161,18 @@ export default function App() {
       }
     }));
 
-    // Send to Firebase
+    // 2. Send the new number to Firebase so all TVs see it
     try {
+      const qmsDocRef = doc(db, 'qms', 'state');
       await setDoc(
-        getDocRef(),
+        qmsDocRef,
         { [clinic]: { [dept]: { [room]: newNumber } } },
-        { merge: true } // Merge true ensures we only overwrite this specific room's data
+        { merge: true } // Merge true ensures we don't delete other rooms!
       );
     } catch (err) {
       console.error("Failed to update database:", err);
-      showModal("Sync Error", "Failed to send number to screens.", "info");
+      showModal("Database Error", "Check Firebase Rules! Error: " + err.message, "info");
+      setDbStatus('error');
     }
   };
 
@@ -421,7 +401,11 @@ export default function App() {
         <div className="w-full max-w-sm mx-auto flex flex-col h-full sm:h-auto sm:border sm:border-slate-700 sm:rounded-3xl sm:p-6 sm:bg-slate-800">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{selectedDept} • {localRoom}</p>
+              <div className="flex items-center space-x-2">
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{selectedDept} • {localRoom}</p>
+                {/* Visual Status Dot */}
+                <div className={`h-2 w-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} title={`DB: ${dbStatus}`} />
+              </div>
               <h1 className="text-lg font-bold leading-tight truncate w-48">{selectedClinic}</h1>
             </div>
             <button onClick={() => setStep(1)} className="p-2 bg-slate-700 rounded-full text-slate-300">
@@ -560,8 +544,12 @@ export default function App() {
               {selectedClinic} - {selectedDept}
             </h2>
           </div>
-          <div className="text-right">
-            <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-1">Queue Management System</p>
+          <div className="text-right flex flex-col items-end">
+            <div className="flex items-center space-x-2 mb-1">
+              {/* This dot tells us if the TV is successfully connected to Firebase */}
+              <div className={`h-2 w-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} />
+              <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">Queue Management System</p>
+            </div>
             <button
               onClick={() => { setSetupDone(false); setCurrentView('login'); }}
               className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-slate-300"
