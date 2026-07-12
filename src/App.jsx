@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+// UPDATED: Added GoogleAuthProvider, signInWithPopup, and signOut
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = typeof __firebase_config !== 'undefined'
@@ -32,6 +33,8 @@ const firebaseConfig = typeof __firebase_config !== 'undefined'
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// Initialize Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
 
 const DEFAULT_CLINICS = [
   "Klinik Kesihatan Padang Rumbia",
@@ -103,6 +106,9 @@ function ActivityIcon(props) {
   );
 }
 
+// --------------------------------------------------------
+// INPUT SCREEN (STAFF)
+// --------------------------------------------------------
 const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
@@ -110,12 +116,12 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
 
   const handleCallNext = () => {
     if (!currentInput) {
-      showModal('Error', 'Please enter a queue number.', 'info');
+      showModal('Error', 'Sila masukkan nombor giliran.', 'info');
       return;
     }
     showModal(
       'Confirm Call',
-      `Call number ${currentInput} to ${localRoom}?`,
+      `Panggil nombor ${currentInput} ke ${localRoom}?`,
       'confirm',
       () => {
         updateQueueNumber(selectedClinic, selectedDept, localRoom, currentInput);
@@ -130,38 +136,38 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
         <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-sm border">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-slate-800">Staff Setup</h2>
-            <button onClick={() => setCurrentView('login')} className="text-slate-400 hover:text-slate-600">
+            <button onClick={() => setCurrentView('login')} className="text-slate-400 hover:text-slate-600" title="Back to Portal">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Clinic</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Klinik</label>
               <select
                 className="w-full p-3 border rounded-xl bg-slate-50"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
-                <option value="">Select Clinic...</option>
+                <option value="">Pilih Klinik...</option>
                 {clinics.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Department</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Jabatan / Zon</label>
               <select
                 className="w-full p-3 border rounded-xl bg-slate-50"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
-                <option value="">Select Department...</option>
+                <option value="">Pilih Jabatan...</option>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Room</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Bilik</label>
               <select
                 className="w-full p-3 border rounded-xl bg-slate-50"
                 value={localRoom}
@@ -178,7 +184,7 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
               onClick={() => setStep(2)}
               className="w-full py-4 mt-6 bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-blue-700 transition-colors"
             >
-              Start Calling Session
+              Mula Memanggil
             </button>
           </div>
         </div>
@@ -250,6 +256,10 @@ const InputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept,
   );
 };
 
+
+// --------------------------------------------------------
+// OUTPUT SCREEN (TV DISPLAY)
+// --------------------------------------------------------
 const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
   const [setupDone, setSetupDone] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -265,29 +275,27 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
   const speakNumber = (room, number) => {
     if (!window.speechSynthesis) return;
 
-    window.speechSynthesis.cancel(); // Stop current speech
+    window.speechSynthesis.cancel();
 
-    // Spacing out digits so the TTS reads them one by one (e.g. "1 0 0 4" instead of "One thousand and four")
+    // Space digits: "1004" -> "1 0 0 4" for clarity in TTS
     const digitString = number.toString().split('').join(' ');
     const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'ms-MY'; // Set language to Malay
+    utterance.lang = 'ms-MY';
 
-    // Find Malay or Indonesian voice
     const voices = window.speechSynthesis.getVoices();
     const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
     if (malayVoice) {
       utterance.voice = malayVoice;
     }
 
-    utterance.rate = 0.85; // Speak slightly slower for clarity
+    utterance.rate = 0.85;
     utterance.pitch = 1.0;
 
     window.speechSynthesis.speak(utterance);
   };
 
-  // Pre-load voices on component mount
   useEffect(() => {
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -296,7 +304,7 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
     }
   }, []);
 
-  // Monitor the queue and trigger voice when a number changes
+  // Monitor for changes to trigger voice
   useEffect(() => {
     if (!setupDone || !selectedClinic || !selectedDept) return;
 
@@ -327,7 +335,6 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
 
   }, [queues, setupDone, selectedClinic, selectedDept, previousQueues]);
 
-  // Gallery slideshow logic
   useEffect(() => {
     if (!setupDone) return;
     const timer = setInterval(() => {
@@ -463,43 +470,39 @@ const OutputScreen = ({ clinics, selectedClinic, setSelectedClinic, selectedDept
   );
 };
 
+
+// --------------------------------------------------------
+// MAIN APP COMPONENT
+// --------------------------------------------------------
 export default function App() {
   const [currentView, setCurrentView] = useState('login');
   const [queues, setQueues] = useState(generateInitialQueues());
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [users, setUsers] = useState(MOCK_USERS);
+
+  // Auth state
   const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
   const [dbStatus, setDbStatus] = useState('connecting');
 
-  // Hardcode database reference for perfect sync across all domains
   const getDocRef = () => {
     return doc(db, 'qms', 'state');
   };
 
+  // Listen for Google Login state changes
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Authentication failed:", err);
-      }
-    };
-    initAuth();
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
+  // Listen for Database changes
   useEffect(() => {
     if (!user) return;
 
@@ -537,9 +540,29 @@ export default function App() {
     });
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Google login failed:", error);
+      showModal("Login Failed", "Unable to sign in with Google. " + error.message, "info");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setCurrentView('login');
+      setSelectedClinic('');
+      setSelectedDept('');
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   const updateQueueNumber = async (clinic, dept, room, newNumber) => {
     if (!user) {
-      showModal("Error", "Not connected to database. Reconnecting...", "info");
+      showModal("Error", "Sila log masuk dahulu.", "info");
       return;
     }
 
@@ -566,147 +589,199 @@ export default function App() {
     }
   };
 
-  const renderLogin = () => (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-20 w-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 mb-4">
+  // Render Logic
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  // 1. UNAUTHENTICATED: Show Google Login Screen
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center">
+          <div className="mx-auto h-20 w-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 mb-6">
             <ActivityIcon className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900">PKD Pekan QMS</h2>
-          <p className="mt-2 text-sm text-slate-600">Select your portal to continue</p>
+          <p className="mt-2 text-sm text-slate-500 mb-8">Sistem Pengurusan Giliran Pejabat Kesihatan Daerah Pekan</p>
+
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center space-x-3 py-4 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 hover:border-blue-400 transition-all shadow-sm"
+          >
+            <svg className="w-6 h-6" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+            </svg>
+            <span className="text-slate-700 font-semibold text-lg">Sign in with Google</span>
+          </button>
         </div>
+        <Modal {...modalConfig} />
+      </div>
+    );
+  }
 
-        <div className="mt-8 space-y-4">
-          <button
-            onClick={() => setCurrentView('admin')}
-            className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                <Settings className="h-6 w-6" />
-              </div>
-              <div className="ml-4 text-left">
-                <p className="text-lg font-bold text-slate-900">Superadmin</p>
-                <p className="text-sm text-slate-500">System management</p>
-              </div>
+  // 2. AUTHENTICATED: Show Portal Selection (Dashboard)
+  if (currentView === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div className="mx-auto h-16 w-16 mb-4">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="h-full w-full rounded-full shadow-md" />
+              ) : (
+                <div className="h-full w-full bg-blue-600 rounded-full flex items-center justify-center shadow-md">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+              )}
             </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
-          </button>
+            <h2 className="text-2xl font-bold text-slate-900">Hi, {user.displayName || 'Staff'}</h2>
+            <p className="text-sm text-slate-500 mb-6">{user.email}</p>
+            <button
+              onClick={handleLogout}
+              className="text-sm px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors font-medium"
+            >
+              Log Out
+            </button>
+          </div>
 
-          <button
-            onClick={() => setCurrentView('input')}
-            className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <Smartphone className="h-6 w-6" />
+          <div className="space-y-4">
+            <button
+              onClick={() => setCurrentView('admin')}
+              className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <Settings className="h-6 w-6" />
+                </div>
+                <div className="ml-4 text-left">
+                  <p className="text-lg font-bold text-slate-900">Superadmin</p>
+                  <p className="text-sm text-slate-500">System management</p>
+                </div>
               </div>
-              <div className="ml-4 text-left">
-                <p className="text-lg font-bold text-slate-900">Staff Input</p>
-                <p className="text-sm text-slate-500">Call queue numbers</p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
-          </button>
+              <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
+            </button>
 
-          <button
-            onClick={() => setCurrentView('output')}
-            className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <Monitor className="h-6 w-6" />
+            <button
+              onClick={() => setCurrentView('input')}
+              className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <Smartphone className="h-6 w-6" />
+                </div>
+                <div className="ml-4 text-left">
+                  <p className="text-lg font-bold text-slate-900">Staff Input</p>
+                  <p className="text-sm text-slate-500">Call queue numbers</p>
+                </div>
               </div>
-              <div className="ml-4 text-left">
-                <p className="text-lg font-bold text-slate-900">TV Display</p>
-                <p className="text-sm text-slate-500">Public waiting screen</p>
+              <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
+            </button>
+
+            <button
+              onClick={() => setCurrentView('output')}
+              className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <Monitor className="h-6 w-6" />
+                </div>
+                <div className="ml-4 text-left">
+                  <p className="text-lg font-bold text-slate-900">TV Display</p>
+                  <p className="text-sm text-slate-500">Public waiting screen</p>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
-          </button>
+              <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const renderAdmin = () => (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Superadmin Dashboard</h1>
-          <p className="text-sm text-slate-500">System Configuration</p>
-        </div>
-        <button onClick={() => setCurrentView('login')} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
-          <LogOut className="h-5 w-5" />
-        </button>
-      </header>
-
-      <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex items-center mb-6">
-            <Users className="h-6 w-6 text-blue-600 mr-2" />
-            <h2 className="text-lg font-bold">User Management (Mock)</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b text-sm text-slate-500">
-                  <th className="pb-3 font-semibold">Name</th>
-                  <th className="pb-3 font-semibold">Role</th>
-                  <th className="pb-3 font-semibold">Location</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u.id} className="border-b last:border-0">
-                    <td className="py-4 font-medium">{u.name}</td>
-                    <td className="py-4 text-sm">{u.role}</td>
-                    <td className="py-4 text-sm">{u.clinic}</td>
-                    <td className="py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right space-x-2">
-                      {u.status === 'Pending' && (
-                        <button className="text-blue-600 hover:text-blue-800 p-1">Approve</button>
-                      )}
-                      <button className="text-red-600 hover:text-red-800 p-1">Remove</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex items-center mb-6">
-            <Building2 className="h-6 w-6 text-purple-600 mr-2" />
-            <h2 className="text-lg font-bold">Facilities Database</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {clinics.map((clinic, idx) => (
-              <div key={idx} className="p-4 border rounded-xl flex justify-between items-center">
-                <span className="font-medium text-slate-700">{clinic}</span>
-                <button className="text-slate-400 hover:text-red-500">
-                  <XCircle className="h-5 w-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-
+  // 3. ADMIN / INPUT / OUTPUT SCREENS
   return (
     <>
-      {currentView === 'login' && renderLogin()}
-      {currentView === 'admin' && renderAdmin()}
+      {currentView === 'admin' && (
+        <div className="min-h-screen bg-slate-50 flex flex-col">
+          <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">Superadmin Dashboard</h1>
+              <p className="text-sm text-slate-500">System Configuration</p>
+            </div>
+            <button onClick={() => setCurrentView('login')} className="px-4 py-2 text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg">
+              Back to Portal
+            </button>
+          </header>
+
+          <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
+            <section className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="flex items-center mb-6">
+                <Users className="h-6 w-6 text-blue-600 mr-2" />
+                <h2 className="text-lg font-bold">User Management (Mock)</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b text-sm text-slate-500">
+                      <th className="pb-3 font-semibold">Name</th>
+                      <th className="pb-3 font-semibold">Role</th>
+                      <th className="pb-3 font-semibold">Location</th>
+                      <th className="pb-3 font-semibold">Status</th>
+                      <th className="pb-3 font-semibold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id} className="border-b last:border-0">
+                        <td className="py-4 font-medium">{u.name}</td>
+                        <td className="py-4 text-sm">{u.role}</td>
+                        <td className="py-4 text-sm">{u.clinic}</td>
+                        <td className="py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td className="py-4 text-right space-x-2">
+                          {u.status === 'Pending' && (
+                            <button className="text-blue-600 hover:text-blue-800 p-1">Approve</button>
+                          )}
+                          <button className="text-red-600 hover:text-red-800 p-1">Remove</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="flex items-center mb-6">
+                <Building2 className="h-6 w-6 text-purple-600 mr-2" />
+                <h2 className="text-lg font-bold">Facilities Database</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {clinics.map((clinic, idx) => (
+                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center">
+                    <span className="font-medium text-slate-700">{clinic}</span>
+                    <button className="text-slate-400 hover:text-red-500">
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </main>
+        </div>
+      )}
+
       {currentView === 'input' && (
         <InputScreen
           clinics={clinics}
@@ -718,6 +793,7 @@ export default function App() {
           dbStatus={dbStatus}
         />
       )}
+
       {currentView === 'output' && (
         <OutputScreen
           clinics={clinics}
@@ -728,6 +804,7 @@ export default function App() {
           dbStatus={dbStatus}
         />
       )}
+
       <Modal {...modalConfig} />
     </>
   );
