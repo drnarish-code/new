@@ -559,6 +559,8 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // CRITICAL FIX: The dependency array here only contains `user` to prevent an infinite rendering loop
+  // that was previously spamming Firebase and returning a 400 Error.
   useEffect(() => {
     if (!user) return;
 
@@ -580,9 +582,9 @@ export default function App() {
       (docSnap) => {
         setDbStatus('connected');
         if (docSnap.exists()) {
-          setQueues(prev => ({ ...generateInitialQueues(clinics, departments), ...docSnap.data() }));
+          setQueues(prev => ({ ...generateInitialQueues(DEFAULT_CLINICS, DEFAULT_DEPARTMENTS), ...docSnap.data() }));
         } else {
-          setDoc(qmsDocRef, generateInitialQueues(clinics, departments)).catch(err => {
+          setDoc(qmsDocRef, generateInitialQueues(DEFAULT_CLINICS, DEFAULT_DEPARTMENTS)).catch(err => {
             console.error("Init error:", err);
             setDbStatus('error');
           });
@@ -598,7 +600,7 @@ export default function App() {
       unsubConfig();
       unsubQueues();
     };
-  }, [user, clinics, departments]);
+  }, [user]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -637,16 +639,21 @@ export default function App() {
       return;
     }
 
-    setQueues(prev => ({
-      ...prev,
-      [clinic]: {
-        ...prev[clinic],
-        [dept]: {
-          ...prev[clinic][dept],
-          [room]: newNumber
+    // Safely update state, guarding against dynamically added clinics not yet fully initialized in state
+    setQueues(prev => {
+      const clinicData = prev[clinic] || {};
+      const deptData = clinicData[dept] || {};
+      return {
+        ...prev,
+        [clinic]: {
+          ...clinicData,
+          [dept]: {
+            ...deptData,
+            [room]: newNumber
+          }
         }
-      }
-    }));
+      };
+    });
 
     try {
       await setDoc(
