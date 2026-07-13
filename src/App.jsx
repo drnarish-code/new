@@ -9,7 +9,9 @@ import {
   ChevronRight,
   XCircle,
   Play,
-  Volume2
+  Volume2,
+  Film,
+  Image as ImageIcon
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -46,6 +48,12 @@ const DEFAULT_CLINICS = [
 ];
 
 const DEFAULT_DEPARTMENTS = ["OPD", "MCH", "Farmasi", "Makmal"];
+
+const DEFAULT_MEDIA = [
+  { type: 'image', url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200' },
+  { type: 'image', url: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200' },
+  { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
+];
 
 const generateInitialQueues = (clinicsList = DEFAULT_CLINICS, deptsList = DEFAULT_DEPARTMENTS) => {
   const queues = {};
@@ -97,6 +105,9 @@ function ActivityIcon(props) {
   );
 }
 
+// --------------------------------------------------------
+// INPUT SCREEN (PHONE/TABLET)
+// --------------------------------------------------------
 const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
@@ -244,21 +255,21 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
   );
 };
 
-const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
+// --------------------------------------------------------
+// OUTPUT SCREEN (TV DISPLAY)
+// --------------------------------------------------------
+const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, mediaList, dbStatus }) => {
   const [setupDone, setSetupDone] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
   const [recentCalls, setRecentCalls] = useState([]);
 
   const audioCtxRef = useRef(null);
   const [highlightedRoom, setHighlightedRoom] = useState(null);
 
-  const images = [
-    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"
-  ];
+  const activeMedia = mediaList[currentMediaIndex] || DEFAULT_MEDIA[0];
 
+  // Synthesize a professional "Ding-Dong" chime natively
   const playChime = () => {
     return new Promise((resolve) => {
       try {
@@ -328,6 +339,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     window.speechSynthesis.speak(utterance);
   };
 
+  // Setup voices early
   useEffect(() => {
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -336,6 +348,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     }
   }, []);
 
+  // Monitor for Database Queue changes
   useEffect(() => {
     if (!setupDone || !selectedClinic || !selectedDept) return;
 
@@ -344,7 +357,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
     if (!previousQueues) {
       setPreviousQueues(currentData);
-
       const initial = Object.entries(currentData)
         .filter(([_, num]) => num !== "0000" && num !== "----")
         .map(([room, number]) => ({ room, number }))
@@ -375,18 +387,28 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
         return [{ room: roomChanged, number: newNumber }, ...filteredList].slice(0, 4);
       });
     }
-
     setPreviousQueues(currentData);
 
   }, [queues, setupDone, selectedClinic, selectedDept, previousQueues]);
 
+  // Handle Media Playlist Transitions (Images vs Videos)
   useEffect(() => {
-    if (!setupDone) return;
-    const timer = setInterval(() => {
-      setCurrentImageIndex(prev => (prev + 1) % images.length);
+    if (currentMediaIndex >= mediaList.length) setCurrentMediaIndex(0);
+  }, [mediaList.length, currentMediaIndex]);
+
+  useEffect(() => {
+    if (!setupDone || mediaList.length === 0) return;
+
+    // If it's a video, the video element's onEnded event handles the transition
+    if (activeMedia && activeMedia.type === 'video') return;
+
+    // If it's an image, transition after 12 seconds
+    const timer = setTimeout(() => {
+      setCurrentMediaIndex(prev => (prev + 1) % mediaList.length);
     }, 12000);
-    return () => clearInterval(timer);
-  }, [setupDone, images.length]);
+
+    return () => clearTimeout(timer);
+  }, [setupDone, currentMediaIndex, mediaList, activeMedia]);
 
   const handleStartTV = () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -450,7 +472,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden font-sans">
-      <header className="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-lg">
+      <header className="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-lg relative z-20">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-wide uppercase">
             Pejabat Kesihatan Daerah Pekan
@@ -473,26 +495,44 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row">
-        <div className="flex-1 relative bg-slate-950 flex items-center justify-center p-8 overflow-hidden">
-          {images.map((img, index) => (
-            <img
-              key={img}
-              src={img}
-              alt="Gallery"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                }`}
-            />
+      <main className="flex-1 flex flex-col md:flex-row relative z-10">
+        <div className="flex-1 relative bg-slate-950 flex items-center justify-center overflow-hidden">
+          {mediaList.map((media, index) => (
+            media.type === 'video' ? (
+              <video
+                key={`${media.url}-${index}`}
+                src={media.url}
+                muted
+                playsInline
+                onEnded={() => setCurrentMediaIndex(prev => (prev + 1) % mediaList.length)}
+                ref={el => {
+                  if (el) {
+                    if (index === currentMediaIndex && setupDone) el.play().catch(() => { });
+                    else { el.pause(); el.currentTime = 0; }
+                  }
+                }}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+              />
+            ) : (
+              <img
+                key={`${media.url}-${index}`}
+                src={media.url}
+                alt="Gallery"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+              />
+            )
           ))}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
           <div className="absolute bottom-10 left-10 z-10">
-            <p className="text-white/80 text-2xl font-semibold bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm">
+            <p className="text-white/80 text-2xl font-semibold bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm shadow-xl">
               Sila tunggu nombor anda dipanggil
             </p>
           </div>
         </div>
 
-        <div className="w-full md:w-[500px] lg:w-[600px] bg-slate-900 border-l border-slate-800 flex flex-col">
+        <div className="w-full md:w-[500px] lg:w-[600px] bg-slate-900 border-l border-slate-800 flex flex-col relative z-20 shadow-2xl">
           <div className="grid grid-cols-2 bg-slate-800 py-6 px-8 border-b border-slate-700 shadow-md">
             <h3 className="text-3xl font-bold text-slate-300 uppercase">Bilik</h3>
             <h3 className="text-3xl font-bold text-slate-300 uppercase text-right">Nombor</h3>
@@ -532,14 +572,20 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
   );
 };
 
+// --------------------------------------------------------
+// MAIN APP & AUTHENTICATION ROUTING
+// --------------------------------------------------------
 export default function App() {
   const [currentView, setCurrentView] = useState('login');
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
+  const [mediaList, setMediaList] = useState(DEFAULT_MEDIA);
   const [queues, setQueues] = useState(generateInitialQueues(clinics, departments));
 
   const [newClinicName, setNewClinicName] = useState('');
   const [newDeptName, setNewDeptName] = useState('');
+  const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newMediaType, setNewMediaType] = useState('image');
 
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -559,8 +605,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // CRITICAL FIX: The dependency array here only contains `user` to prevent an infinite rendering loop
-  // that was previously spamming Firebase and returning a 400 Error.
+  // Sync Configuration and Queues from Firebase
   useEffect(() => {
     if (!user) return;
 
@@ -572,8 +617,13 @@ export default function App() {
         const data = docSnap.data();
         if (data.clinics) setClinics(data.clinics);
         if (data.departments) setDepartments(data.departments);
+        if (data.media) setMediaList(data.media);
       } else {
-        setDoc(configRef, { clinics: DEFAULT_CLINICS, departments: DEFAULT_DEPARTMENTS }, { merge: true });
+        setDoc(configRef, {
+          clinics: DEFAULT_CLINICS,
+          departments: DEFAULT_DEPARTMENTS,
+          media: DEFAULT_MEDIA
+        }, { merge: true });
       }
     });
 
@@ -600,7 +650,7 @@ export default function App() {
       unsubConfig();
       unsubQueues();
     };
-  }, [user]);
+  }, [user]); // Guaranteed no infinite loops!
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -634,12 +684,8 @@ export default function App() {
   };
 
   const updateQueueNumber = async (clinic, dept, room, newNumber) => {
-    if (!user) {
-      showModal("Error", "Sila log masuk dahulu.", "info");
-      return;
-    }
+    if (!user) return showModal("Error", "Sila log masuk dahulu.", "info");
 
-    // Safely update state, guarding against dynamically added clinics not yet fully initialized in state
     setQueues(prev => {
       const clinicData = prev[clinic] || {};
       const deptData = clinicData[dept] || {};
@@ -656,17 +702,14 @@ export default function App() {
     });
 
     try {
-      await setDoc(
-        getDocRef(),
-        { [clinic]: { [dept]: { [room]: newNumber } } },
-        { merge: true }
-      );
+      await setDoc(getDocRef(), { [clinic]: { [dept]: { [room]: newNumber } } }, { merge: true });
     } catch (err) {
       console.error("Failed to update database:", err);
-      showModal("Database Error", "Check Firebase Rules! Error: " + err.message, "info");
+      showModal("Database Error", "Error: " + err.message, "info");
     }
   };
 
+  // Superadmin Functions
   const addFacility = async () => {
     if (!newClinicName.trim()) return;
     const updatedClinics = [...clinics, newClinicName.trim()];
@@ -676,7 +719,7 @@ export default function App() {
   };
 
   const removeFacility = async (clinicToRemove) => {
-    showModal('Padam Klinik', `Adakah anda pasti mahu memadam ${clinicToRemove}?`, 'confirm', async () => {
+    showModal('Padam', `Pasti mahu memadam ${clinicToRemove}?`, 'confirm', async () => {
       const updatedClinics = clinics.filter(c => c !== clinicToRemove);
       setClinics(updatedClinics);
       await setDoc(doc(db, 'qms', 'config'), { clinics: updatedClinics }, { merge: true });
@@ -692,10 +735,26 @@ export default function App() {
   };
 
   const removeDepartment = async (deptToRemove) => {
-    showModal('Padam Jabatan', `Adakah anda pasti mahu memadam ${deptToRemove}?`, 'confirm', async () => {
+    showModal('Padam', `Pasti mahu memadam ${deptToRemove}?`, 'confirm', async () => {
       const updatedDepts = departments.filter(d => d !== deptToRemove);
       setDepartments(updatedDepts);
       await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
+    });
+  };
+
+  const addMedia = async () => {
+    if (!newMediaUrl.trim()) return;
+    const updatedMedia = [...mediaList, { url: newMediaUrl.trim(), type: newMediaType }];
+    setMediaList(updatedMedia);
+    setNewMediaUrl('');
+    await setDoc(doc(db, 'qms', 'config'), { media: updatedMedia }, { merge: true });
+  };
+
+  const removeMedia = async (idxToRemove) => {
+    showModal('Padam Media', `Pasti mahu memadam media ini dari playlist?`, 'confirm', async () => {
+      const updatedMedia = mediaList.filter((_, idx) => idx !== idxToRemove);
+      setMediaList(updatedMedia);
+      await setDoc(doc(db, 'qms', 'config'), { media: updatedMedia }, { merge: true });
     });
   };
 
@@ -715,7 +774,7 @@ export default function App() {
             <ActivityIcon className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900">PKD Pekan QMS</h2>
-          <p className="mt-2 text-sm text-slate-500 mb-8">Sistem Pengurusan Giliran Pejabat Kesihatan Daerah Pekan</p>
+          <p className="mt-2 text-sm text-slate-500 mb-8">Sistem Pengurusan Giliran</p>
 
           <button
             onClick={handleGoogleLogin}
@@ -891,6 +950,46 @@ export default function App() {
                 ))}
               </div>
             </section>
+
+            <section className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <Monitor className="h-6 w-6 text-emerald-600 mr-2" />
+                  <h2 className="text-lg font-bold">TV Media Playlist</h2>
+                </div>
+                <div className="flex space-x-2">
+                  <select
+                    value={newMediaType}
+                    onChange={(e) => setNewMediaType(e.target.value)}
+                    className="border p-2 rounded-lg text-sm bg-slate-50 outline-none"
+                  >
+                    <option value="image">Image</option>
+                    <option value="video">Video</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Direct URL (.jpg, .mp4)"
+                    value={newMediaUrl}
+                    onChange={(e) => setNewMediaUrl(e.target.value)}
+                    className="border p-2 rounded-lg text-sm w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add URL</button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {mediaList.map((media, idx) => (
+                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIcon className="h-5 w-5 text-slate-500 shrink-0" />}
+                      <span className="font-medium text-slate-700 truncate">{media.url}</span>
+                    </div>
+                    <button onClick={() => removeMedia(idx)} className="text-slate-400 hover:text-red-500 transition-colors ml-4 shrink-0">
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
           </main>
         </div>
       )}
@@ -912,6 +1011,7 @@ export default function App() {
         <OutputScreen
           clinics={clinics || []}
           departments={departments || []}
+          mediaList={mediaList || []}
           selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
           selectedDept={selectedDept} setSelectedDept={setSelectedDept}
           setCurrentView={setCurrentView}
