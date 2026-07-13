@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
-// UPDATED: Added GoogleAuthProvider, signInWithPopup, and signOut
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
@@ -33,7 +32,6 @@ const firebaseConfig = typeof __firebase_config !== 'undefined'
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 
 const DEFAULT_CLINICS = [
@@ -54,21 +52,14 @@ const generateInitialQueues = (clinicsList = DEFAULT_CLINICS, deptsList = DEFAUL
   clinicsList.forEach(clinic => {
     queues[clinic] = {};
     deptsList.forEach(dept => {
-      queues[clinic][dept] = {
-        "Bilik 1": "0000",
-        "Bilik 2": "0000",
-        "Bilik 3": "0000"
-      };
+      queues[clinic][dept] = {};
+      for (let i = 1; i <= 20; i++) {
+        queues[clinic][dept][`Bilik ${i}`] = "0000";
+      }
     });
   });
   return queues;
 };
-
-const MOCK_USERS = [
-  { id: 1, name: "Dr. Ahmad", role: "Input", status: "Approved", clinic: "Klinik Kesihatan Chini" },
-  { id: 2, name: "Nurse Siti", role: "Input", status: "Pending", clinic: "Klinik Kesihatan Bandar Pekan" },
-  { id: 3, name: "Admin TV", role: "Output", status: "Approved", clinic: "All" }
-];
 
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
@@ -173,9 +164,9 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
               >
-                <option value="Bilik 1">Bilik 1</option>
-                <option value="Bilik 2">Bilik 2</option>
-                <option value="Bilik 3">Bilik 3</option>
+                {Array.from({ length: 20 }, (_, i) => (
+                  <option key={i} value={`Bilik ${i + 1}`}>Bilik {i + 1}</option>
+                ))}
               </select>
             </div>
 
@@ -256,7 +247,6 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
   );
 };
 
-
 // --------------------------------------------------------
 // OUTPUT SCREEN (TV DISPLAY)
 // --------------------------------------------------------
@@ -264,6 +254,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
   const [setupDone, setSetupDone] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
+  const [recentCalls, setRecentCalls] = useState([]);
 
   const images = [
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200",
@@ -271,13 +262,51 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"
   ];
 
-  // Configure Text-to-Speech
-  const speakNumber = (room, number) => {
+  // Synthesize a professional "Ding-Dong" chime natively
+  const playChime = () => {
+    return new Promise((resolve) => {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, ctx.currentTime);
+        gain1.gain.setValueAtTime(0, ctx.currentTime);
+        gain1.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.8);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.4);
+        gain2.gain.setValueAtTime(0, ctx.currentTime + 0.4);
+        gain2.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.45);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+        osc2.start(ctx.currentTime + 0.4);
+        osc2.stop(ctx.currentTime + 1.5);
+
+        setTimeout(resolve, 1200);
+      } catch (e) {
+        console.error("Audio API not supported", e);
+        resolve();
+      }
+    });
+  };
+
+  const speakNumber = async (room, number) => {
     if (!window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
+    await playChime();
 
-    // Space digits: "1004" -> "1 0 0 4" for clarity in TTS
     const digitString = number.toString().split('').join(' ');
     const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
 
@@ -304,7 +333,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     }
   }, []);
 
-  // Monitor for changes to trigger voice
   useEffect(() => {
     if (!setupDone || !selectedClinic || !selectedDept) return;
 
@@ -313,6 +341,13 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
     if (!previousQueues) {
       setPreviousQueues(currentData);
+
+      // Grab initial 4 calls
+      const initial = Object.entries(currentData)
+        .filter(([_, num]) => num !== "0000" && num !== "----")
+        .map(([room, number]) => ({ room, number }))
+        .slice(0, 4);
+      setRecentCalls(initial);
       return;
     }
 
@@ -329,6 +364,11 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
     if (roomChanged && newNumber && newNumber !== "0000") {
       speakNumber(roomChanged, newNumber);
+
+      setRecentCalls(prev => {
+        const filteredList = prev.filter(call => call.room !== roomChanged);
+        return [{ room: roomChanged, number: newNumber }, ...filteredList].slice(0, 4);
+      });
     }
 
     setPreviousQueues(currentData);
@@ -395,8 +435,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     );
   }
 
-  const currentRoomsData = queues[selectedClinic]?.[selectedDept] || { "Bilik 1": "----", "Bilik 2": "----", "Bilik 3": "----" };
-
   return (
     <div className="min-h-screen bg-black text-white flex flex-col overflow-hidden font-sans">
       <header className="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-lg">
@@ -447,29 +485,39 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
             <h3 className="text-3xl font-bold text-slate-300 uppercase text-right">Nombor</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-            {Object.entries(currentRoomsData).map(([room, number], index) => (
-              <div
-                key={room}
-                className={`grid grid-cols-2 py-3 px-8 border-b border-slate-800 items-center ${index % 2 === 0 ? 'bg-slate-900/50' : 'bg-slate-800/20'
-                  }`}
-              >
-                <div className="text-2xl font-bold text-emerald-400">
-                  {room}
-                </div>
-                <div className="text-5xl font-extrabold text-white text-right tracking-wider tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                  {number}
-                </div>
+          <div className="flex-1 overflow-hidden flex flex-col bg-slate-950">
+            {recentCalls.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-slate-600 text-2xl font-semibold">
+                Tiada panggilan
               </div>
-            ))}
-            <div className="flex-1 bg-slate-900/50 min-h-[50px]"></div>
+            ) : (
+              recentCalls.map((call, index) => (
+                <div
+                  key={call.room}
+                  className={`grid grid-cols-2 py-10 px-8 border-b border-slate-800 items-center transition-all duration-500 ${index === 0
+                    ? 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner'
+                    : 'bg-slate-900/40'
+                    }`}
+                >
+                  <div className={`text-4xl font-bold ${index === 0 ? 'text-blue-400 drop-shadow-md' : 'text-emerald-500/80'}`}>
+                    {call.room}
+                  </div>
+                  <div className={`text-7xl font-extrabold text-right tracking-wider tabular-nums ${index === 0
+                    ? 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                    : 'text-slate-400'
+                    }`}>
+                    {call.number}
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="flex-1"></div>
           </div>
         </div>
       </main>
     </div>
   );
 };
-
 
 // --------------------------------------------------------
 // MAIN APP COMPONENT
@@ -479,13 +527,10 @@ export default function App() {
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [queues, setQueues] = useState(generateInitialQueues(clinics, departments));
-  const [users, setUsers] = useState(MOCK_USERS);
 
-  // Admin input states
   const [newClinicName, setNewClinicName] = useState('');
   const [newDeptName, setNewDeptName] = useState('');
 
-  // Auth state
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -494,11 +539,8 @@ export default function App() {
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
   const [dbStatus, setDbStatus] = useState('connecting');
 
-  const getDocRef = () => {
-    return doc(db, 'qms', 'state');
-  };
+  const getDocRef = () => doc(db, 'qms', 'state');
 
-  // Listen for Google Login state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -507,26 +549,22 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Listen for Database changes
   useEffect(() => {
     if (!user) return;
 
     const qmsDocRef = getDocRef();
     const configRef = doc(db, 'qms', 'config');
 
-    // 1. Listen for dynamic config changes (Clinics & Departments)
     const unsubConfig = onSnapshot(configRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.clinics) setClinics(data.clinics);
         if (data.departments) setDepartments(data.departments);
       } else {
-        // Initialize config if it doesn't exist
         setDoc(configRef, { clinics: DEFAULT_CLINICS, departments: DEFAULT_DEPARTMENTS }, { merge: true });
       }
     });
 
-    // 2. Listen for Queue Number changes
     const unsubQueues = onSnapshot(
       qmsDocRef,
       (docSnap) => {
@@ -612,7 +650,6 @@ export default function App() {
     }
   };
 
-  // --- ADMIN FUNCTIONS ---
   const addFacility = async () => {
     if (!newClinicName.trim()) return;
     const updatedClinics = [...clinics, newClinicName.trim()];
@@ -645,7 +682,6 @@ export default function App() {
     });
   };
 
-  // Render Logic
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -654,7 +690,6 @@ export default function App() {
     );
   }
 
-  // 1. UNAUTHENTICATED: Show Google Login Screen
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -683,7 +718,6 @@ export default function App() {
     );
   }
 
-  // 2. AUTHENTICATED: Show Portal Selection (Dashboard)
   if (currentView === 'login') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -714,11 +748,7 @@ export default function App() {
                 if (user?.email === 'dr.narish@gmail.com') {
                   setCurrentView('admin');
                 } else {
-                  showModal(
-                    'Akses Ditolak',
-                    'Hanya Superadmin (dr.narish@gmail.com) dibenarkan untuk mengakses portal ini.',
-                    'info'
-                  );
+                  showModal('Akses Ditolak', 'Hanya Superadmin (dr.narish@gmail.com) dibenarkan untuk mengakses portal ini.', 'info');
                 }
               }}
               className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
@@ -772,7 +802,6 @@ export default function App() {
     );
   }
 
-  // 3. ADMIN / INPUT / OUTPUT SCREENS
   return (
     <>
       {currentView === 'admin' && (
@@ -788,46 +817,6 @@ export default function App() {
           </header>
 
           <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
-            <section className="bg-white rounded-2xl shadow-sm border p-6">
-              <div className="flex items-center mb-6">
-                <Users className="h-6 w-6 text-blue-600 mr-2" />
-                <h2 className="text-lg font-bold">User Management (Mock)</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b text-sm text-slate-500">
-                      <th className="pb-3 font-semibold">Name</th>
-                      <th className="pb-3 font-semibold">Role</th>
-                      <th className="pb-3 font-semibold">Location</th>
-                      <th className="pb-3 font-semibold">Status</th>
-                      <th className="pb-3 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u.id} className="border-b last:border-0">
-                        <td className="py-4 font-medium">{u.name}</td>
-                        <td className="py-4 text-sm">{u.role}</td>
-                        <td className="py-4 text-sm">{u.clinic}</td>
-                        <td className="py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {u.status}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right space-x-2">
-                          {u.status === 'Pending' && (
-                            <button className="text-blue-600 hover:text-blue-800 p-1">Approve</button>
-                          )}
-                          <button className="text-red-600 hover:text-red-800 p-1">Remove</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -891,8 +880,8 @@ export default function App() {
 
       {currentView === 'input' && (
         <InputScreen
-          clinics={clinics}
-          departments={departments}
+          clinics={clinics || []}
+          departments={departments || []}
           selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
           selectedDept={selectedDept} setSelectedDept={setSelectedDept}
           setCurrentView={setCurrentView}
@@ -904,31 +893,8 @@ export default function App() {
 
       {currentView === 'output' && (
         <OutputScreen
-          clinics={clinics}
-          departments={departments}
-          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
-          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
-          setCurrentView={setCurrentView}
-          queues={queues}
-          dbStatus={dbStatus}
-        />
-      )}
-
-      {currentView === 'input' && (
-        <InputScreen
-          clinics={clinics}
-          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
-          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
-          setCurrentView={setCurrentView}
-          showModal={showModal}
-          updateQueueNumber={updateQueueNumber}
-          dbStatus={dbStatus}
-        />
-      )}
-
-      {currentView === 'output' && (
-        <OutputScreen
-          clinics={clinics}
+          clinics={clinics || []}
+          departments={departments || []}
           selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
           selectedDept={selectedDept} setSelectedDept={setSelectedDept}
           setCurrentView={setCurrentView}
