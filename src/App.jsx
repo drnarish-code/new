@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Monitor,
   Smartphone,
@@ -97,9 +97,6 @@ function ActivityIcon(props) {
   );
 }
 
-// --------------------------------------------------------
-// INPUT SCREEN (STAFF)
-// --------------------------------------------------------
 const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
@@ -247,14 +244,14 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
   );
 };
 
-// --------------------------------------------------------
-// OUTPUT SCREEN (TV DISPLAY)
-// --------------------------------------------------------
 const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, dbStatus }) => {
   const [setupDone, setSetupDone] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
   const [recentCalls, setRecentCalls] = useState([]);
+
+  const audioCtxRef = useRef(null);
+  const [highlightedRoom, setHighlightedRoom] = useState(null);
 
   const images = [
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200",
@@ -262,12 +259,18 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200"
   ];
 
-  // Synthesize a professional "Ding-Dong" chime natively
   const playChime = () => {
     return new Promise((resolve) => {
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
+        const ctx = audioCtxRef.current;
+        if (!ctx) {
+          resolve();
+          return;
+        }
+
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
 
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
@@ -295,7 +298,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
         setTimeout(resolve, 1200);
       } catch (e) {
-        console.error("Audio API not supported", e);
+        console.error("Audio API error", e);
         resolve();
       }
     });
@@ -342,7 +345,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     if (!previousQueues) {
       setPreviousQueues(currentData);
 
-      // Grab initial 4 calls
       const initial = Object.entries(currentData)
         .filter(([_, num]) => num !== "0000" && num !== "----")
         .map(([room, number]) => ({ room, number }))
@@ -365,6 +367,9 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     if (roomChanged && newNumber && newNumber !== "0000") {
       speakNumber(roomChanged, newNumber);
 
+      setHighlightedRoom(roomChanged);
+      setTimeout(() => setHighlightedRoom(null), 1500);
+
       setRecentCalls(prev => {
         const filteredList = prev.filter(call => call.room !== roomChanged);
         return [{ room: roomChanged, number: newNumber }, ...filteredList].slice(0, 4);
@@ -382,6 +387,14 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     }, 12000);
     return () => clearInterval(timer);
   }, [setupDone, images.length]);
+
+  const handleStartTV = () => {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext && !audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    }
+    setSetupDone(true);
+  };
 
   if (!setupDone) {
     return (
@@ -423,7 +436,7 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
               </button>
               <button
                 disabled={!selectedClinic || !selectedDept}
-                onClick={() => setSetupDone(true)}
+                onClick={handleStartTV}
                 className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center"
               >
                 <Play className="h-5 w-5 mr-2" /> Start TV
@@ -494,17 +507,17 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
               recentCalls.map((call, index) => (
                 <div
                   key={call.room}
-                  className={`grid grid-cols-2 py-10 px-8 border-b border-slate-800 items-center transition-all duration-500 ${index === 0
-                    ? 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner'
-                    : 'bg-slate-900/40'
+                  className={`grid grid-cols-2 py-10 px-8 border-b border-slate-800 items-center transition-all duration-700 ${index === 0
+                      ? (highlightedRoom === call.room ? 'bg-blue-600 border-l-8 border-l-white scale-[1.02] shadow-2xl z-10' : 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner')
+                      : 'bg-slate-900/40'
                     }`}
                 >
-                  <div className={`text-4xl font-bold ${index === 0 ? 'text-blue-400 drop-shadow-md' : 'text-emerald-500/80'}`}>
+                  <div className={`text-4xl font-bold transition-colors duration-700 ${index === 0 ? (highlightedRoom === call.room ? 'text-white' : 'text-blue-400 drop-shadow-md') : 'text-emerald-500/80'}`}>
                     {call.room}
                   </div>
-                  <div className={`text-7xl font-extrabold text-right tracking-wider tabular-nums ${index === 0
-                    ? 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]'
-                    : 'text-slate-400'
+                  <div className={`text-7xl font-extrabold text-right tracking-wider tabular-nums transition-colors duration-700 ${index === 0
+                      ? (highlightedRoom === call.room ? 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.8)]' : 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]')
+                      : 'text-slate-400'
                     }`}>
                     {call.number}
                   </div>
@@ -519,9 +532,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
   );
 };
 
-// --------------------------------------------------------
-// MAIN APP COMPONENT
-// --------------------------------------------------------
 export default function App() {
   const [currentView, setCurrentView] = useState('login');
   const [clinics, setClinics] = useState(DEFAULT_CLINICS);
