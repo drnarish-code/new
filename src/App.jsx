@@ -100,12 +100,12 @@ function pcmToWav(pcm16Data, sampleRate) {
   writeString(view, 8, 'WAVE');
   writeString(view, 12, 'fmt ');
   view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // Raw PCM
-  view.setUint16(22, 1, true); // Mono Channel
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // byte rate
-  view.setUint16(32, 2, true); // block align
-  view.setUint16(34, 16, true); // 16 bit
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
   writeString(view, 36, 'data');
   view.setUint32(40, pcm16Data.length * 2, true);
 
@@ -443,7 +443,7 @@ const OutputScreen = ({
     const textPrompt = `Sebutkan dengan nada yang lembut, tenang dan jelas dalam Bahasa Melayu: Nombor ${malayDigits}, sila ke ${room}.`;
 
     try {
-      const apiKey = ""; // Canvas injects dynamic Gemini API Keys here
+      const apiKey = "";
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
 
       const payload = {
@@ -452,7 +452,7 @@ const OutputScreen = ({
           responseModalities: ["AUDIO"],
           speechConfig: {
             voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: "Despina" } // Warm, casual female tone
+              prebuiltVoiceConfig: { voiceName: "Despina" }
             }
           }
         }
@@ -488,7 +488,6 @@ const OutputScreen = ({
       console.warn("Gemini TTS failing. Falling back seamlessly to browser WebSpeech API...", apiError);
     }
 
-    // WEB SPEECH NATIVE FALLBACK ROUTE
     if (!window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
@@ -523,11 +522,23 @@ const OutputScreen = ({
     const currentData = queues[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept];
     if (!currentData) return;
 
+    // Backward-compatible safe structure readers
+    const getNum = (val) => {
+      if (!val) return '';
+      if (typeof val === 'object') return val.number || '';
+      return val;
+    };
+    const getTs = (val) => {
+      if (!val) return 0;
+      if (typeof val === 'object') return val.timestamp || 0;
+      return 0;
+    };
+
     if (!previousQueues) {
-      setPreviousQueues(currentData);
+      setPreviousQueues(JSON.parse(JSON.stringify(currentData)));
       const initial = Object.entries(currentData)
-        .filter(([_, num]) => num !== "0000" && num !== "----")
-        .map(([room, number]) => ({ room, number }))
+        .map(([room, val]) => ({ room, number: getNum(val), timestamp: getTs(val) }))
+        .filter(({ number }) => number !== "0000" && number !== "----")
         .slice(0, 4);
       setRecentCalls(initial);
       return;
@@ -536,10 +547,20 @@ const OutputScreen = ({
     let roomChanged = null;
     let newNumber = null;
 
-    for (const [room, number] of Object.entries(currentData)) {
-      if (previousQueues[room] !== number) {
+    for (const [room, val] of Object.entries(currentData)) {
+      const prevVal = previousQueues[room];
+      const currentNum = getNum(val);
+      const prevNum = getNum(prevVal);
+      const currentTs = getTs(val);
+      const prevTs = getTs(prevVal);
+
+      // TRIGGER CALL: If number changed, OR if same number was called again (indicated by newer timestamp)
+      if (
+        currentNum !== prevNum ||
+        (currentNum === prevNum && currentTs > prevTs && currentNum !== "0000" && currentNum !== "----")
+      ) {
         roomChanged = room;
-        newNumber = number;
+        newNumber = currentNum;
         break;
       }
     }
@@ -555,7 +576,7 @@ const OutputScreen = ({
         return [{ room: roomChanged, number: newNumber }, ...filteredList].slice(0, 4);
       });
     }
-    setPreviousQueues(currentData);
+    setPreviousQueues(JSON.parse(JSON.stringify(currentData)));
 
   }, [queues, setupDone, selectedState, selectedDistrict, selectedClinic, selectedDept, previousQueues]);
 
@@ -603,7 +624,6 @@ const OutputScreen = ({
       audioCtxRef.current = new AudioContext();
     }
 
-    // Unlock local TTS audio channel inside the event gesture
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.getVoices();
@@ -972,13 +992,14 @@ export default function App() {
   const updateQueueNumber = async (stateVal, districtVal, clinicVal, deptVal, roomVal, newNumber) => {
     if (!user) return showModal("Ralat", "Sila log masuk dahulu.", "info");
 
+    const timestamp = Date.now();
     const updatedQueues = { ...queues };
     if (!updatedQueues[stateVal]) updatedQueues[stateVal] = {};
     if (!updatedQueues[stateVal][districtVal]) updatedQueues[stateVal][districtVal] = {};
     if (!updatedQueues[stateVal][districtVal][clinicVal]) updatedQueues[stateVal][districtVal][clinicVal] = {};
     if (!updatedQueues[stateVal][districtVal][clinicVal][deptVal]) updatedQueues[stateVal][districtVal][clinicVal][deptVal] = {};
 
-    updatedQueues[stateVal][districtVal][clinicVal][deptVal][roomVal] = newNumber;
+    updatedQueues[stateVal][districtVal][clinicVal][deptVal][roomVal] = { number: newNumber, timestamp };
     setQueues(updatedQueues);
 
     try {
@@ -987,7 +1008,10 @@ export default function App() {
           [districtVal]: {
             [clinicVal]: {
               [deptVal]: {
-                [roomVal]: newNumber
+                [roomVal]: {
+                  number: newNumber,
+                  timestamp
+                }
               }
             }
           }
@@ -1709,7 +1733,7 @@ export default function App() {
         </div>
       )}
 
-      { }
+      {/* SCREEN ROUTING */}
       {currentView === 'input' && (
         <InputScreen
           hierarchy={hierarchy || {}}
