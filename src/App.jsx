@@ -15,7 +15,6 @@ import {
   MapPin,
   Map,
   ShieldAlert,
-  CheckCircle,
   Clock,
   UserCheck
 } from 'lucide-react';
@@ -165,8 +164,10 @@ const InputScreen = ({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Negeri</label>
+              <label htmlFor="input-state" className="block text-sm font-semibold text-slate-700 mb-1">Negeri</label>
               <select
+                id="input-state"
+                name="inputState"
                 disabled={!isSuperadmin}
                 className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedState}
@@ -182,8 +183,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Daerah</label>
+              <label htmlFor="input-district" className="block text-sm font-semibold text-slate-700 mb-1">Daerah</label>
               <select
+                id="input-district"
+                name="inputDistrict"
                 disabled={!isSuperadmin || !selectedState}
                 className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedDistrict}
@@ -198,8 +201,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Klinik Kesihatan</label>
+              <label htmlFor="input-clinic" className="block text-sm font-semibold text-slate-700 mb-1">Klinik Kesihatan</label>
               <select
+                id="input-clinic"
+                name="inputClinic"
                 disabled={!isSuperadmin || !selectedDistrict}
                 className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedClinic}
@@ -211,8 +216,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Jabatan / Zon</label>
+              <label htmlFor="input-dept" className="block text-sm font-semibold text-slate-700 mb-1">Jabatan / Zon</label>
               <select
+                id="input-dept"
+                name="inputDept"
                 className="w-full p-3 border rounded-xl bg-slate-50 font-medium"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
@@ -223,8 +230,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Bilik</label>
+              <label htmlFor="input-room" className="block text-sm font-semibold text-slate-700 mb-1">Bilik</label>
               <select
+                id="input-room"
+                name="inputRoom"
                 className="w-full p-3 border rounded-xl bg-slate-50 font-medium"
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
@@ -330,7 +339,7 @@ const OutputScreen = ({
 
   const audioCtxRef = useRef(null);
   const [highlightedRoom, setHighlightedRoom] = useState(null);
-  const videoRefs = useRef({}); // Safely hold references to HTML5 Video elements
+  const videoRefs = useRef({});
 
   const activeMedia = mediaList[currentMediaIndex] || DEFAULT_MEDIA[0];
 
@@ -476,11 +485,9 @@ const OutputScreen = ({
     return () => clearTimeout(timer);
   }, [setupDone, currentMediaIndex, mediaList, activeMedia]);
 
-  // Clean side-effect for playing and pausing HTML5 videos to prevent inline mount errors
   useEffect(() => {
     if (!setupDone) return;
 
-    // Pause all video refs first
     Object.keys(videoRefs.current).forEach(key => {
       const vid = videoRefs.current[key];
       if (vid) {
@@ -491,12 +498,11 @@ const OutputScreen = ({
       }
     });
 
-    // Play active media if it is a video
     if (activeMedia && activeMedia.type === 'video') {
       const activeVideo = videoRefs.current[`${activeMedia.url}-${currentMediaIndex}`];
       if (activeVideo) {
         activeVideo.play().catch((err) => {
-          console.warn("Video autoplay prevented by browser constraints. Interaction required.", err);
+          console.warn("Video autoplay prevented by browser constraints.", err);
         });
       }
     }
@@ -521,8 +527,10 @@ const OutputScreen = ({
 
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
+              <label htmlFor="output-state" className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
               <select
+                id="output-state"
+                name="outputState"
                 disabled={!isSuperadmin}
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white disabled:opacity-50"
                 value={selectedState}
@@ -538,8 +546,10 @@ const OutputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Daerah</label>
+              <label htmlFor="output-district" className="block text-sm font-semibold text-slate-400 mb-2">Daerah</label>
               <select
+                id="output-district"
+                name="outputDistrict"
                 disabled={!isSuperadmin || !selectedState}
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white disabled:opacity-50"
                 value={selectedDistrict}
@@ -554,8 +564,10 @@ const OutputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Klinik Kesihatan</label>
+              <label htmlFor="output-clinic" className="block text-sm font-semibold text-slate-400 mb-2">Klinik Kesihatan</label>
               <select
+                id="output-clinic"
+                name="outputClinic"
                 disabled={!isSuperadmin || !selectedDistrict}
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white disabled:opacity-50"
                 value={selectedClinic}
@@ -567,8 +579,10 @@ const OutputScreen = ({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
+              <label htmlFor="output-dept" className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
               <select
+                id="output-dept"
+                name="outputDept"
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
@@ -1277,6 +1291,8 @@ export default function App() {
                             </td>
                             <td className="p-3">
                               <select
+                                id={`status-select-${u.uid}`}
+                                name={`statusSelect-${u.uid}`}
                                 className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                     u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
                                       'bg-amber-50 text-amber-700 border-amber-200'
@@ -1290,9 +1306,10 @@ export default function App() {
                               </select>
                             </td>
                             <td className="p-3 space-y-2">
-                              {/* Cascading selectors for dynamic staff location config */}
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <select
+                                  id={`assigned-state-${u.uid}`}
+                                  name={`assignedState-${u.uid}`}
                                   className="text-xs p-2 border rounded-lg bg-white outline-none w-32"
                                   value={userState}
                                   onChange={(e) => {
@@ -1306,6 +1323,8 @@ export default function App() {
                                 </select>
 
                                 <select
+                                  id={`assigned-district-${u.uid}`}
+                                  name={`assignedDistrict-${u.uid}`}
                                   disabled={!userState}
                                   className="text-xs p-2 border rounded-lg bg-white outline-none disabled:opacity-50 w-32"
                                   value={userDistrict}
@@ -1319,6 +1338,8 @@ export default function App() {
                                 </select>
 
                                 <select
+                                  id={`assigned-clinic-${u.uid}`}
+                                  name={`assignedClinic-${u.uid}`}
                                   disabled={!userDistrict}
                                   className="text-xs p-2 border rounded-lg bg-white outline-none disabled:opacity-50 w-44"
                                   value={u.assignedClinic || ''}
@@ -1347,7 +1368,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* HIERARCHY BUILDER CARD */}
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1365,6 +1386,8 @@ export default function App() {
 
                   <div className="flex space-x-2 mb-3">
                     <input
+                      id="admin-new-state"
+                      name="adminNewState"
                       type="text"
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
@@ -1415,6 +1438,8 @@ export default function App() {
                     <>
                       <div className="flex space-x-2 mb-3">
                         <input
+                          id="admin-new-district"
+                          name="adminNewDistrict"
                           type="text"
                           placeholder={`Daerah Baru di ${adminSelectedState}...`}
                           value={newHierarchyDistrict}
@@ -1469,6 +1494,8 @@ export default function App() {
                     <>
                       <div className="flex space-x-2 mb-3">
                         <input
+                          id="admin-new-clinic"
+                          name="adminNewClinic"
                           type="text"
                           placeholder={`Klinik di ${adminSelectedDistrict}...`}
                           value={newClinicName}
@@ -1506,7 +1533,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* DEPARTMENTS CARD */}
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -1515,6 +1542,8 @@ export default function App() {
                 </div>
                 <div className="flex space-x-2">
                   <input
+                    id="admin-new-dept"
+                    name="adminNewDept"
                     type="text"
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
@@ -1536,7 +1565,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* MEDIA PLAYLIST CARD */}
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -1545,6 +1574,8 @@ export default function App() {
                 </div>
                 <div className="flex space-x-2">
                   <select
+                    id="admin-media-type"
+                    name="adminMediaType"
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
                     className="border p-2 rounded-lg text-sm bg-slate-50 outline-none"
@@ -1553,6 +1584,8 @@ export default function App() {
                     <option value="video">Video</option>
                   </select>
                   <input
+                    id="admin-media-url"
+                    name="adminMediaUrl"
                     type="text"
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
