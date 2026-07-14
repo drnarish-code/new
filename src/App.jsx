@@ -11,7 +11,9 @@ import {
   Play,
   Volume2,
   Film,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MapPin,
+  Map
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -36,16 +38,20 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-const DEFAULT_CLINICS = [
-  "Klinik Kesihatan Padang Rumbia",
-  "Klinik Kesihatan Bandar Pekan",
-  "Klinik Kesihatan Temai",
-  "Klinik Kesihatan Peramu Jaya",
-  "Klinik Kesihatan Nenasi",
-  "Klinik Kesihatan Runchang",
-  "Klinik Kesihatan Chini",
-  "Klinik Komuniti Kuala Pahang"
-];
+const DEFAULT_HIERARCHY = {
+  "Pahang": {
+    "Pekan": [
+      "Klinik Kesihatan Padang Rumbia",
+      "Klinik Kesihatan Bandar Pekan",
+      "Klinik Kesihatan Temai",
+      "Klinik Kesihatan Peramu Jaya",
+      "Klinik Kesihatan Nenasi",
+      "Klinik Kesihatan Runchang",
+      "Klinik Kesihatan Chini",
+      "Klinik Komuniti Kuala Pahang"
+    ]
+  }
+};
 
 const DEFAULT_DEPARTMENTS = ["OPD", "MCH", "Farmasi", "Makmal"];
 
@@ -54,20 +60,6 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200' },
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
-
-const generateInitialQueues = (clinicsList = DEFAULT_CLINICS, deptsList = DEFAULT_DEPARTMENTS) => {
-  const queues = {};
-  clinicsList.forEach(clinic => {
-    queues[clinic] = {};
-    deptsList.forEach(dept => {
-      queues[clinic][dept] = {};
-      for (let i = 1; i <= 20; i++) {
-        queues[clinic][dept][`Bilik ${i}`] = "0000";
-      }
-    });
-  });
-  return queues;
-};
 
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
@@ -82,14 +74,14 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
               onClick={onCancel}
               className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors"
             >
-              Cancel
+              Batal
             </button>
           )}
           <button
             onClick={onConfirm}
             className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200"
           >
-            {type === 'confirm' ? 'Confirm' : 'OK'}
+            {type === 'confirm' ? 'Sahkan' : 'OK'}
           </button>
         </div>
       </div>
@@ -105,25 +97,34 @@ function ActivityIcon(props) {
   );
 }
 
-// --------------------------------------------------------
-// INPUT SCREEN (PHONE/TABLET)
-// --------------------------------------------------------
-const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, showModal, updateQueueNumber, dbStatus }) => {
+const InputScreen = ({
+  hierarchy,
+  departments,
+  selectedState, setSelectedState,
+  selectedDistrict, setSelectedDistrict,
+  selectedClinic, setSelectedClinic,
+  selectedDept, setSelectedDept,
+  setCurrentView, showModal, updateQueueNumber, dbStatus
+}) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
   const [currentInput, setCurrentInput] = useState('');
 
+  const statesList = Object.keys(hierarchy || {});
+  const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
+
   const handleCallNext = () => {
     if (!currentInput) {
-      showModal('Error', 'Sila masukkan nombor giliran.', 'info');
+      showModal('Ralat', 'Sila masukkan nombor giliran.', 'info');
       return;
     }
     showModal(
-      'Confirm Call',
+      'Sahkan Panggilan',
       `Panggil nombor ${currentInput} ke ${localRoom}?`,
       'confirm',
       () => {
-        updateQueueNumber(selectedClinic, selectedDept, localRoom, currentInput);
+        updateQueueNumber(selectedState, selectedDistrict, selectedClinic, selectedDept, localRoom, currentInput);
         setCurrentInput('');
       }
     );
@@ -134,22 +135,55 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-sm border">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">Staff Setup</h2>
-            <button onClick={() => setCurrentView('login')} className="text-slate-400 hover:text-slate-600" title="Back to Portal">
+            <h2 className="text-2xl font-bold text-slate-800">Sesi Panggilan</h2>
+            <button onClick={() => setCurrentView('login')} className="text-slate-400 hover:text-slate-600" title="Kembali">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Klinik</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Negeri</label>
               <select
                 className="w-full p-3 border rounded-xl bg-slate-50"
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                  setSelectedDistrict('');
+                  setSelectedClinic('');
+                }}
+              >
+                <option value="">Pilih Negeri...</option>
+                {statesList.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Daerah</label>
+              <select
+                className="w-full p-3 border rounded-xl bg-slate-50 disabled:opacity-50"
+                value={selectedDistrict}
+                disabled={!selectedState}
+                onChange={(e) => {
+                  setSelectedDistrict(e.target.value);
+                  setSelectedClinic('');
+                }}
+              >
+                <option value="">Pilih Daerah...</option>
+                {districtsList.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Klinik Kesihatan</label>
+              <select
+                className="w-full p-3 border rounded-xl bg-slate-50 disabled:opacity-50"
                 value={selectedClinic}
+                disabled={!selectedDistrict}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
                 <option value="">Pilih Klinik...</option>
-                {clinics.map(c => <option key={c} value={c}>{c}</option>)}
+                {clinicsList.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
@@ -179,7 +213,7 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
             </div>
 
             <button
-              disabled={!selectedClinic || !selectedDept}
+              disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
               onClick={() => setStep(2)}
               className="w-full py-4 mt-6 bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-blue-700 transition-colors"
             >
@@ -201,6 +235,7 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
               <div className={`h-2 w-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} title={`DB: ${dbStatus}`} />
             </div>
             <h1 className="text-lg font-bold leading-tight truncate w-48">{selectedClinic}</h1>
+            <p className="text-xs text-slate-400 font-medium truncate w-48">{selectedDistrict}, {selectedState}</p>
           </div>
           <button onClick={() => setStep(1)} className="p-2 bg-slate-700 rounded-full text-slate-300">
             <Settings className="h-5 w-5" />
@@ -248,17 +283,22 @@ const InputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, 
           className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/50"
         >
           <Volume2 className="h-6 w-6" />
-          <span>Call Number</span>
+          <span>Panggil Nombor</span>
         </button>
       </div>
     </div>
   );
 };
 
-// --------------------------------------------------------
-// OUTPUT SCREEN (TV DISPLAY)
-// --------------------------------------------------------
-const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic, selectedDept, setSelectedDept, setCurrentView, queues, mediaList, dbStatus }) => {
+const OutputScreen = ({
+  hierarchy,
+  departments,
+  selectedState, setSelectedState,
+  selectedDistrict, setSelectedDistrict,
+  selectedClinic, setSelectedClinic,
+  selectedDept, setSelectedDept,
+  setCurrentView, queues, mediaList, dbStatus
+}) => {
   const [setupDone, setSetupDone] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
@@ -269,7 +309,10 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
 
   const activeMedia = mediaList[currentMediaIndex] || DEFAULT_MEDIA[0];
 
-  // Synthesize a professional "Ding-Dong" chime natively
+  const statesList = Object.keys(hierarchy || {});
+  const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
+
   const playChime = () => {
     return new Promise((resolve) => {
       try {
@@ -339,7 +382,6 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     window.speechSynthesis.speak(utterance);
   };
 
-  // Setup voices early
   useEffect(() => {
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -348,11 +390,10 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     }
   }, []);
 
-  // Monitor for Database Queue changes
   useEffect(() => {
-    if (!setupDone || !selectedClinic || !selectedDept) return;
+    if (!setupDone || !selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return;
 
-    const currentData = queues[selectedClinic]?.[selectedDept];
+    const currentData = queues[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept];
     if (!currentData) return;
 
     if (!previousQueues) {
@@ -389,20 +430,16 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     }
     setPreviousQueues(currentData);
 
-  }, [queues, setupDone, selectedClinic, selectedDept, previousQueues]);
+  }, [queues, setupDone, selectedState, selectedDistrict, selectedClinic, selectedDept, previousQueues]);
 
-  // Handle Media Playlist Transitions (Images vs Videos)
   useEffect(() => {
     if (currentMediaIndex >= mediaList.length) setCurrentMediaIndex(0);
   }, [mediaList.length, currentMediaIndex]);
 
   useEffect(() => {
     if (!setupDone || mediaList.length === 0) return;
-
-    // If it's a video, the video element's onEnded event handles the transition
     if (activeMedia && activeMedia.type === 'video') return;
 
-    // If it's an image, transition after 12 seconds
     const timer = setTimeout(() => {
       setCurrentMediaIndex(prev => (prev + 1) % mediaList.length);
     }, 12000);
@@ -422,29 +459,62 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700 text-white">
-          <h2 className="text-2xl font-bold mb-6 text-center">Configure TV Display</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">Konfigurasi TV Display</h2>
 
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Select Clinic Location</label>
+              <label className="block text-sm font-semibold text-slate-400 mb-2">Pilih Negeri</label>
               <select
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white"
-                value={selectedClinic}
-                onChange={(e) => setSelectedClinic(e.target.value)}
+                value={selectedState}
+                onChange={(e) => {
+                  setSelectedState(e.target.value);
+                  setSelectedDistrict('');
+                  setSelectedClinic('');
+                }}
               >
-                <option value="">Choose...</option>
-                {clinics.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">Pilih...</option>
+                {statesList.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Select Department (Zone)</label>
+              <label className="block text-sm font-semibold text-slate-400 mb-2">Pilih Daerah</label>
+              <select
+                className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white disabled:opacity-50"
+                value={selectedDistrict}
+                disabled={!selectedState}
+                onChange={(e) => {
+                  setSelectedDistrict(e.target.value);
+                  setSelectedClinic('');
+                }}
+              >
+                <option value="">Pilih...</option>
+                {districtsList.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-400 mb-2">Pilih Klinik Kesihatan</label>
+              <select
+                className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white disabled:opacity-50"
+                value={selectedClinic}
+                disabled={!selectedDistrict}
+                onChange={(e) => setSelectedClinic(e.target.value)}
+              >
+                <option value="">Pilih...</option>
+                {clinicsList.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-400 mb-2">Pilih Jabatan (Zon)</label>
               <select
                 className="w-full p-4 border border-slate-600 rounded-xl bg-slate-900 text-white"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
-                <option value="">Choose...</option>
+                <option value="">Pilih...</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -454,14 +524,14 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
                 onClick={() => setCurrentView('login')}
                 className="flex-1 py-4 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600"
               >
-                Back
+                Kembali
               </button>
               <button
-                disabled={!selectedClinic || !selectedDept}
+                disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
                 className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center"
               >
-                <Play className="h-5 w-5 mr-2" /> Start TV
+                <Play className="h-5 w-5 mr-2" /> Mula TV
               </button>
             </div>
           </div>
@@ -475,22 +545,23 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
       <header className="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-lg relative z-20">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-blue-400 tracking-wide uppercase">
-            Pejabat Kesihatan Daerah Pekan
+            Pejabat Kesihatan Daerah
           </h1>
           <h2 className="text-xl md:text-4xl font-bold text-white mt-2 uppercase">
             {selectedClinic} - {selectedDept}
           </h2>
+          <p className="text-sm text-slate-400 mt-1 uppercase font-semibold">{selectedDistrict}, {selectedState}</p>
         </div>
         <div className="text-right flex flex-col items-end">
           <div className="flex items-center space-x-2 mb-1">
             <div className={`h-2 w-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : dbStatus === 'error' ? 'bg-red-500' : 'bg-amber-500 animate-pulse'}`} />
-            <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">Queue Management System</p>
+            <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">Sistem QMS</p>
           </div>
           <button
             onClick={() => { setSetupDone(false); setCurrentView('login'); }}
-            className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-slate-300"
+            className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-slate-300 animate-pulse"
           >
-            Exit TV Mode
+            Tutup TV Mode
           </button>
         </div>
       </header>
@@ -572,26 +643,34 @@ const OutputScreen = ({ clinics, departments, selectedClinic, setSelectedClinic,
   );
 };
 
-// --------------------------------------------------------
-// MAIN APP & AUTHENTICATION ROUTING
-// --------------------------------------------------------
 export default function App() {
   const [currentView, setCurrentView] = useState('login');
-  const [clinics, setClinics] = useState(DEFAULT_CLINICS);
+  const [hierarchy, setHierarchy] = useState(DEFAULT_HIERARCHY);
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [mediaList, setMediaList] = useState(DEFAULT_MEDIA);
-  const [queues, setQueues] = useState(generateInitialQueues(clinics, departments));
+  const [queues, setQueues] = useState({});
 
+  // Superadmin Form States
   const [newClinicName, setNewClinicName] = useState('');
   const [newDeptName, setNewDeptName] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaType, setNewMediaType] = useState('image');
 
+  // Superadmin Hierarchy Builders
+  const [newHierarchyState, setNewHierarchyState] = useState('');
+  const [newHierarchyDistrict, setNewHierarchyDistrict] = useState('');
+  const [adminSelectedState, setAdminSelectedState] = useState('');
+  const [adminSelectedDistrict, setAdminSelectedDistrict] = useState('');
+
+  // Routing Selection States
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedClinic, setSelectedClinic] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
+
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const [selectedClinic, setSelectedClinic] = useState('');
-  const [selectedDept, setSelectedDept] = useState('');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info', onConfirm: null, onCancel: null });
   const [dbStatus, setDbStatus] = useState('connecting');
 
@@ -605,7 +684,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync Configuration and Queues from Firebase
   useEffect(() => {
     if (!user) return;
 
@@ -615,12 +693,12 @@ export default function App() {
     const unsubConfig = onSnapshot(configRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.clinics) setClinics(data.clinics);
+        if (data.hierarchy) setHierarchy(data.hierarchy);
         if (data.departments) setDepartments(data.departments);
         if (data.media) setMediaList(data.media);
       } else {
         setDoc(configRef, {
-          clinics: DEFAULT_CLINICS,
+          hierarchy: DEFAULT_HIERARCHY,
           departments: DEFAULT_DEPARTMENTS,
           media: DEFAULT_MEDIA
         }, { merge: true });
@@ -632,9 +710,9 @@ export default function App() {
       (docSnap) => {
         setDbStatus('connected');
         if (docSnap.exists()) {
-          setQueues(prev => ({ ...generateInitialQueues(DEFAULT_CLINICS, DEFAULT_DEPARTMENTS), ...docSnap.data() }));
+          setQueues(docSnap.data());
         } else {
-          setDoc(qmsDocRef, generateInitialQueues(DEFAULT_CLINICS, DEFAULT_DEPARTMENTS)).catch(err => {
+          setDoc(qmsDocRef, {}).catch(err => {
             console.error("Init error:", err);
             setDbStatus('error');
           });
@@ -650,7 +728,7 @@ export default function App() {
       unsubConfig();
       unsubQueues();
     };
-  }, [user]); // Guaranteed no infinite loops!
+  }, [user]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -668,7 +746,7 @@ export default function App() {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Google login failed:", error);
-      showModal("Login Failed", "Unable to sign in with Google. " + error.message, "info");
+      showModal("Daftar Masuk Gagal", "Sila cuba lagi. " + error.message, "info");
     }
   };
 
@@ -676,6 +754,8 @@ export default function App() {
     try {
       await signOut(auth);
       setCurrentView('login');
+      setSelectedState('');
+      setSelectedDistrict('');
       setSelectedClinic('');
       setSelectedDept('');
     } catch (error) {
@@ -683,46 +763,126 @@ export default function App() {
     }
   };
 
-  const updateQueueNumber = async (clinic, dept, room, newNumber) => {
-    if (!user) return showModal("Error", "Sila log masuk dahulu.", "info");
+  const updateQueueNumber = async (stateVal, districtVal, clinicVal, deptVal, roomVal, newNumber) => {
+    if (!user) return showModal("Ralat", "Sila log masuk dahulu.", "info");
 
-    setQueues(prev => {
-      const clinicData = prev[clinic] || {};
-      const deptData = clinicData[dept] || {};
-      return {
-        ...prev,
-        [clinic]: {
-          ...clinicData,
-          [dept]: {
-            ...deptData,
-            [room]: newNumber
-          }
-        }
-      };
-    });
+    const updatedQueues = { ...queues };
+    if (!updatedQueues[stateVal]) updatedQueues[stateVal] = {};
+    if (!updatedQueues[stateVal][districtVal]) updatedQueues[stateVal][districtVal] = {};
+    if (!updatedQueues[stateVal][districtVal][clinicVal]) updatedQueues[stateVal][districtVal][clinicVal] = {};
+    if (!updatedQueues[stateVal][districtVal][clinicVal][deptVal]) updatedQueues[stateVal][districtVal][clinicVal][deptVal] = {};
+
+    updatedQueues[stateVal][districtVal][clinicVal][deptVal][roomVal] = newNumber;
+    setQueues(updatedQueues);
 
     try {
-      await setDoc(getDocRef(), { [clinic]: { [dept]: { [room]: newNumber } } }, { merge: true });
+      await setDoc(getDocRef(), {
+        [stateVal]: {
+          [districtVal]: {
+            [clinicVal]: {
+              [deptVal]: {
+                [roomVal]: newNumber
+              }
+            }
+          }
+        }
+      }, { merge: true });
     } catch (err) {
       console.error("Failed to update database:", err);
       showModal("Database Error", "Error: " + err.message, "info");
     }
   };
 
-  // Superadmin Functions
-  const addFacility = async () => {
-    if (!newClinicName.trim()) return;
-    const updatedClinics = [...clinics, newClinicName.trim()];
-    setClinics(updatedClinics);
-    setNewClinicName('');
-    await setDoc(doc(db, 'qms', 'config'), { clinics: updatedClinics }, { merge: true });
+  const addState = async () => {
+    if (!newHierarchyState.trim()) return;
+    const cleanStateName = newHierarchyState.trim();
+    if (hierarchy[cleanStateName]) {
+      showModal("Info", "Negeri ini sudah wujud.", "info");
+      return;
+    }
+    const updatedHierarchy = { ...hierarchy, [cleanStateName]: {} };
+    setHierarchy(updatedHierarchy);
+    setNewHierarchyState('');
+    await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
   };
 
-  const removeFacility = async (clinicToRemove) => {
-    showModal('Padam', `Pasti mahu memadam ${clinicToRemove}?`, 'confirm', async () => {
-      const updatedClinics = clinics.filter(c => c !== clinicToRemove);
-      setClinics(updatedClinics);
-      await setDoc(doc(db, 'qms', 'config'), { clinics: updatedClinics }, { merge: true });
+  const removeState = async (stateToRemove) => {
+    showModal('Padam Negeri', `Padam negeri ${stateToRemove} dan semua daerah & klinik di bawahnya?`, 'confirm', async () => {
+      const updatedHierarchy = { ...hierarchy };
+      delete updatedHierarchy[stateToRemove];
+      setHierarchy(updatedHierarchy);
+      if (adminSelectedState === stateToRemove) {
+        setAdminSelectedState('');
+        setAdminSelectedDistrict('');
+      }
+      await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
+    });
+  };
+
+  const addDistrict = async () => {
+    if (!adminSelectedState || !newHierarchyDistrict.trim()) return;
+    const cleanDistrictName = newHierarchyDistrict.trim();
+    const stateObj = hierarchy[adminSelectedState] || {};
+    if (stateObj[cleanDistrictName]) {
+      showModal("Info", "Daerah ini sudah wujud dalam negeri ini.", "info");
+      return;
+    }
+    const updatedHierarchy = {
+      ...hierarchy,
+      [adminSelectedState]: {
+        ...stateObj,
+        [cleanDistrictName]: []
+      }
+    };
+    setHierarchy(updatedHierarchy);
+    setNewHierarchyDistrict('');
+    await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
+  };
+
+  const removeDistrict = async (districtToRemove) => {
+    showModal('Padam Daerah', `Padam daerah ${districtToRemove} dan semua klinik di bawahnya?`, 'confirm', async () => {
+      const updatedHierarchy = { ...hierarchy };
+      delete updatedHierarchy[adminSelectedState][districtToRemove];
+      setHierarchy(updatedHierarchy);
+      if (adminSelectedDistrict === districtToRemove) {
+        setAdminSelectedDistrict('');
+      }
+      await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
+    });
+  };
+
+  const addClinic = async () => {
+    if (!adminSelectedState || !adminSelectedDistrict || !newClinicName.trim()) return;
+    const cleanClinicName = newClinicName.trim();
+    const currentClinics = hierarchy[adminSelectedState][adminSelectedDistrict] || [];
+    if (currentClinics.includes(cleanClinicName)) {
+      showModal("Info", "Klinik ini sudah wujud dalam daerah ini.", "info");
+      return;
+    }
+    const updatedHierarchy = {
+      ...hierarchy,
+      [adminSelectedState]: {
+        ...hierarchy[adminSelectedState],
+        [adminSelectedDistrict]: [...currentClinics, cleanClinicName]
+      }
+    };
+    setHierarchy(updatedHierarchy);
+    setNewClinicName('');
+    await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
+  };
+
+  const removeClinic = async (clinicToRemove) => {
+    showModal('Padam Klinik', `Padam klinik ${clinicToRemove}?`, 'confirm', async () => {
+      const updatedClinics = (hierarchy[adminSelectedState][adminSelectedDistrict] || []).filter(c => c !== clinicToRemove);
+      const updatedHierarchy = {
+        ...hierarchy,
+        [adminSelectedState]: {
+          ...hierarchy[adminSelectedState],
+          [adminSelectedDistrict]: updatedClinics
+        }
+      };
+      setHierarchy(updatedHierarchy);
+      await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
     });
   };
 
@@ -773,8 +933,8 @@ export default function App() {
           <div className="mx-auto h-20 w-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 mb-6">
             <ActivityIcon className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900">PKD Pekan QMS</h2>
-          <p className="mt-2 text-sm text-slate-500 mb-8">Sistem Pengurusan Giliran</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 font-sans tracking-tight">PKD QMS Gateway</h2>
+          <p className="mt-2 text-sm text-slate-500 mb-8">Sistem Pengurusan Giliran Bersepadu</p>
 
           <button
             onClick={handleGoogleLogin}
@@ -786,7 +946,7 @@ export default function App() {
               <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
               <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
             </svg>
-            <span className="text-slate-700 font-semibold text-lg">Sign in with Google</span>
+            <span className="text-slate-700 font-semibold text-lg">Log Masuk dengan Google</span>
           </button>
         </div>
         <Modal {...modalConfig} />
@@ -801,20 +961,20 @@ export default function App() {
           <div className="text-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div className="mx-auto h-16 w-16 mb-4">
               {user.photoURL ? (
-                <img src={user.photoURL} alt="Profile" className="h-full w-full rounded-full shadow-md" />
+                <img src={user.photoURL} alt="Profil" className="h-full w-full rounded-full shadow-md" />
               ) : (
                 <div className="h-full w-full bg-blue-600 rounded-full flex items-center justify-center shadow-md">
                   <Users className="h-8 w-8 text-white" />
                 </div>
               )}
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Hi, {user.displayName || 'Staff'}</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Hai, {user.displayName || 'Kakitangan'}</h2>
             <p className="text-sm text-slate-500 mb-6">{user.email}</p>
             <button
               onClick={handleLogout}
               className="text-sm px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors font-medium"
             >
-              Log Out
+              Log Keluar
             </button>
           </div>
 
@@ -834,8 +994,8 @@ export default function App() {
                   <Settings className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
-                  <p className="text-lg font-bold text-slate-900">Superadmin</p>
-                  <p className="text-sm text-slate-500">System management</p>
+                  <p className="text-lg font-bold text-slate-900">Superadmin Portal</p>
+                  <p className="text-sm text-slate-500">Konfigurasi Negeri, Daerah & Klinik</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
@@ -850,8 +1010,8 @@ export default function App() {
                   <Smartphone className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
-                  <p className="text-lg font-bold text-slate-900">Staff Input</p>
-                  <p className="text-sm text-slate-500">Call queue numbers</p>
+                  <p className="text-lg font-bold text-slate-900">Portal Staf (Input)</p>
+                  <p className="text-sm text-slate-500">Panggil nombor giliran</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
@@ -866,14 +1026,15 @@ export default function App() {
                   <Monitor className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
-                  <p className="text-lg font-bold text-slate-900">TV Display</p>
-                  <p className="text-sm text-slate-500">Public waiting screen</p>
+                  <p className="text-lg font-bold text-slate-900">Skrin TV (Output)</p>
+                  <p className="text-sm text-slate-500">Paparan menunggu pesakit</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
             </button>
           </div>
         </div>
+        <Modal {...modalConfig} />
       </div>
     );
   }
@@ -884,49 +1045,181 @@ export default function App() {
         <div className="min-h-screen bg-slate-50 flex flex-col">
           <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Superadmin Dashboard</h1>
-              <p className="text-sm text-slate-500">System Configuration</p>
+              <h1 className="text-xl font-bold text-slate-800">Dashboard Superadmin</h1>
+              <p className="text-sm text-slate-500">Konfigurasi Hierarki Daerah & Wilayah QMS</p>
             </div>
             <button onClick={() => setCurrentView('login')} className="px-4 py-2 text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg">
-              Back to Portal
+              Kembali
             </button>
           </header>
 
-          <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-8">
-            <section className="bg-white rounded-2xl shadow-sm border p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <Building2 className="h-6 w-6 text-purple-600 mr-2" />
-                  <h2 className="text-lg font-bold">Senarai Klinik (Facilities)</h2>
-                </div>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Klinik Baru..."
-                    value={newClinicName}
-                    onChange={(e) => setNewClinicName(e.target.value)}
-                    className="border p-2 rounded-lg text-sm w-40 md:w-56 focus:ring-2 focus:ring-purple-500 outline-none"
-                  />
-                  <button onClick={addFacility} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add</button>
-                </div>
+          <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
+
+            {/* HIERARCHY BUILDER CARD */}
+            <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
+              <div className="flex items-center mb-2">
+                <Map className="h-6 w-6 text-purple-600 mr-2" />
+                <h2 className="text-xl font-bold">Pengurusan Struktur Regional</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {clinics.map((clinic, idx) => (
-                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <span className="font-medium text-slate-700">{clinic}</span>
-                    <button onClick={() => removeFacility(clinic)} className="text-slate-400 hover:text-red-500 transition-colors">
-                      <XCircle className="h-5 w-5" />
-                    </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* STATE BOX */}
+                <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                    <span>1. Negeri</span>
+                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">{Object.keys(hierarchy).length}</span>
+                  </h3>
+
+                  <div className="flex space-x-2 mb-3">
+                    <input
+                      type="text"
+                      placeholder="Negeri Baru..."
+                      value={newHierarchyState}
+                      onChange={(e) => setNewHierarchyState(e.target.value)}
+                      className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button onClick={addState} className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                   </div>
-                ))}
+
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {Object.keys(hierarchy).map(stateName => (
+                      <div
+                        key={stateName}
+                        onClick={() => {
+                          setAdminSelectedState(stateName);
+                          setAdminSelectedDistrict('');
+                        }}
+                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-100 border-purple-500 shadow-sm' : 'bg-white hover:bg-slate-100'
+                          }`}
+                      >
+                        <span className="font-semibold text-slate-800">{stateName}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeState(stateName);
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DISTRICT BOX */}
+                <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                    <span>2. Daerah</span>
+                    {adminSelectedState && (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                        {Object.keys(hierarchy[adminSelectedState] || {}).length}
+                      </span>
+                    )}
+                  </h3>
+
+                  {adminSelectedState ? (
+                    <>
+                      <div className="flex space-x-2 mb-3">
+                        <input
+                          type="text"
+                          placeholder={`Daerah Baru di ${adminSelectedState}...`}
+                          value={newHierarchyDistrict}
+                          onChange={(e) => setNewHierarchyDistrict(e.target.value)}
+                          className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button onClick={addDistrict} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto space-y-2">
+                        {Object.keys(hierarchy[adminSelectedState] || {}).map(distName => (
+                          <div
+                            key={distName}
+                            onClick={() => setAdminSelectedDistrict(distName)}
+                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-100 border-blue-500 shadow-sm' : 'bg-white hover:bg-slate-100'
+                              }`}
+                          >
+                            <span className="font-semibold text-slate-800">{distName}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeDistrict(distName);
+                              }}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm text-center">
+                      <MapPin className="h-8 w-8 mb-2 text-slate-300" />
+                      Sila pilih Negeri dahulu untuk menguruskan Daerah.
+                    </div>
+                  )}
+                </div>
+
+                {/* CLINIC BOX */}
+                <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                    <span>3. Klinik Kesihatan</span>
+                    {adminSelectedState && adminSelectedDistrict && (
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).length}
+                      </span>
+                    )}
+                  </h3>
+
+                  {adminSelectedState && adminSelectedDistrict ? (
+                    <>
+                      <div className="flex space-x-2 mb-3">
+                        <input
+                          type="text"
+                          placeholder={`Klinik di ${adminSelectedDistrict}...`}
+                          value={newClinicName}
+                          onChange={(e) => setNewClinicName(e.target.value)}
+                          className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <button onClick={addClinic} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto space-y-2">
+                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).map(clinic => (
+                          <div
+                            key={clinic}
+                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all"
+                          >
+                            <span className="font-semibold text-slate-800">{clinic}</span>
+                            <button
+                              onClick={() => removeClinic(clinic)}
+                              className="text-slate-400 hover:text-red-500"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-sm text-center">
+                      <Building2 className="h-8 w-8 mb-2 text-slate-300" />
+                      Sila pilih Daerah dahulu untuk menguruskan Klinik.
+                    </div>
+                  )}
+                </div>
+
               </div>
             </section>
 
+            {/* DEPARTMENTS CARD */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Settings className="h-6 w-6 text-orange-600 mr-2" />
-                  <h2 className="text-lg font-bold">Jabatan / Zon (Departments)</h2>
+                  <h2 className="text-lg font-bold">Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
                   <input
@@ -936,7 +1229,7 @@ export default function App() {
                     onChange={(e) => setNewDeptName(e.target.value)}
                     className="border p-2 rounded-lg text-sm w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
                   />
-                  <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add</button>
+                  <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -951,6 +1244,7 @@ export default function App() {
               </div>
             </section>
 
+            {/* MEDIA PLAYLIST CARD */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -973,7 +1267,7 @@ export default function App() {
                     onChange={(e) => setNewMediaUrl(e.target.value)}
                     className="border p-2 rounded-lg text-sm w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
-                  <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Add URL</button>
+                  <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah URL</button>
                 </div>
               </div>
               <div className="space-y-3">
@@ -996,8 +1290,10 @@ export default function App() {
 
       {currentView === 'input' && (
         <InputScreen
-          clinics={clinics || []}
+          hierarchy={hierarchy || {}}
           departments={departments || []}
+          selectedState={selectedState} setSelectedState={setSelectedState}
+          selectedDistrict={selectedDistrict} setSelectedDistrict={setSelectedDistrict}
           selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
           selectedDept={selectedDept} setSelectedDept={setSelectedDept}
           setCurrentView={setCurrentView}
@@ -1009,9 +1305,11 @@ export default function App() {
 
       {currentView === 'output' && (
         <OutputScreen
-          clinics={clinics || []}
+          hierarchy={hierarchy || {}}
           departments={departments || []}
           mediaList={mediaList || []}
+          selectedState={selectedState} setSelectedState={setSelectedState}
+          selectedDistrict={selectedDistrict} setSelectedDistrict={setSelectedDistrict}
           selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
           selectedDept={selectedDept} setSelectedDept={setSelectedDept}
           setCurrentView={setCurrentView}
