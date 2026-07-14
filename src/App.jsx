@@ -16,7 +16,8 @@ import {
   Map,
   ShieldAlert,
   Clock,
-  UserCheck
+  UserCheck,
+  RotateCcw
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -153,7 +154,8 @@ const InputScreen = ({
   selectedClinic, setSelectedClinic,
   selectedDept, setSelectedDept,
   setCurrentView, showModal, updateQueueNumber, dbStatus,
-  isSuperadmin
+  isSuperadmin,
+  queues
 }) => {
   const [step, setStep] = useState(1);
   const [localRoom, setLocalRoom] = useState('Bilik 1');
@@ -162,6 +164,11 @@ const InputScreen = ({
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
   const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
+
+  // Determine if there is currently an active number called to this specific room
+  const roomData = queues?.[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept]?.[localRoom];
+  const activeNumber = roomData && typeof roomData === 'object' ? roomData.number : (roomData || '');
+  const hasActiveNumber = activeNumber && activeNumber !== '----' && activeNumber !== '0000';
 
   const handleCallNext = () => {
     if (!currentInput) {
@@ -175,6 +182,21 @@ const InputScreen = ({
       () => {
         updateQueueNumber(selectedState, selectedDistrict, selectedClinic, selectedDept, localRoom, currentInput);
         setCurrentInput('');
+      }
+    );
+  };
+
+  const handleRedial = () => {
+    if (!hasActiveNumber) {
+      showModal('Ralat', 'Tiada nombor panggilan aktif untuk dipanggil semula.', 'info');
+      return;
+    }
+    showModal(
+      'Panggil Semula',
+      `Panggil semula nombor ${activeNumber} ke ${localRoom}?`,
+      'confirm',
+      () => {
+        updateQueueNumber(selectedState, selectedDistrict, selectedClinic, selectedDept, localRoom, activeNumber);
       }
     );
   };
@@ -343,13 +365,25 @@ const InputScreen = ({
           </button>
         </div>
 
-        <button
-          onClick={handleCallNext}
-          className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/50"
-        >
-          <Volume2 className="h-6 w-6" />
-          <span>Panggil Nombor</span>
-        </button>
+        <div className="flex flex-col space-y-3">
+          {hasActiveNumber && (
+            <button
+              onClick={handleRedial}
+              className="w-full bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 shadow-md shadow-amber-900/40 border border-amber-500/30 transition-all transform active:scale-95"
+            >
+              <RotateCcw className="h-5 w-5" />
+              <span>Panggil Semula ({activeNumber})</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleCallNext}
+            className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/50 transform active:scale-95 transition-transform"
+          >
+            <Volume2 className="h-6 w-6" />
+            <span>Panggil Nombor</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1747,6 +1781,7 @@ export default function App() {
           updateQueueNumber={updateQueueNumber}
           dbStatus={dbStatus}
           isSuperadmin={isSuperadmin}
+          queues={queues}
         />
       )}
 
