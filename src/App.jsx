@@ -128,7 +128,7 @@ const InputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
 
   const handleCallNext = () => {
     if (!currentInput) {
@@ -345,7 +345,7 @@ const OutputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
 
   const playChime = () => {
     return new Promise((resolve) => {
@@ -687,16 +687,16 @@ const OutputScreen = ({
                 <div
                   key={call.room}
                   className={`grid grid-cols-2 py-10 px-8 border-b border-slate-800 items-center transition-all duration-700 ${index === 0
-                    ? (highlightedRoom === call.room ? 'bg-blue-600 border-l-8 border-l-white scale-[1.02] shadow-2xl z-10' : 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner')
-                    : 'bg-slate-900/40'
+                      ? (highlightedRoom === call.room ? 'bg-blue-600 border-l-8 border-l-white scale-[1.02] shadow-2xl z-10' : 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner')
+                      : 'bg-slate-900/40'
                     }`}
                 >
                   <div className={`text-4xl font-bold transition-colors duration-700 ${index === 0 ? (highlightedRoom === call.room ? 'text-white' : 'text-blue-400 drop-shadow-md') : 'text-emerald-500/80'}`}>
                     {call.room}
                   </div>
                   <div className={`text-7xl font-extrabold text-right tracking-wider tabular-nums transition-colors duration-700 ${index === 0
-                    ? (highlightedRoom === call.room ? 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.8)]' : 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]')
-                    : 'text-slate-400'
+                      ? (highlightedRoom === call.room ? 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.8)]' : 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]')
+                      : 'text-slate-400'
                     }`}>
                     {call.number}
                   </div>
@@ -717,7 +717,7 @@ export default function App() {
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [mediaList, setMediaList] = useState(DEFAULT_MEDIA);
   const [queues, setQueues] = useState({});
-  const [userPermissions, setUserPermissions] = useState(null); // Changed from {} to null to correctly detect initial load
+  const [userPermissions, setUserPermissions] = useState(null); // NULL indicates "not loaded yet" to bypass initial load bug
 
   // Superadmin Form States
   const [newClinicName, setNewClinicName] = useState('');
@@ -746,7 +746,16 @@ export default function App() {
   const getDocRef = () => doc(db, 'qms', 'state');
 
   useEffect(() => {
-    if (!user || Object.keys(userPermissions || {}).length === 0) return;
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync users database if they log in
+  useEffect(() => {
+    if (!user || !userPermissions) return;
     const isSuper = user.email === 'dr.narish@gmail.com';
     if (isSuper) return;
 
@@ -762,22 +771,76 @@ export default function App() {
           assignedDistrict: '',
           assignedClinic: ''
         }
-      }, { merge: true });
+      }, { merge: true }).catch((err) => console.error("Write profile error:", err));
     }
   }, [user, userPermissions]);
 
+  // Lock clinics/districts automatically on successfully approved staff accounts
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userPermissions) return;
     const isSuper = user.email === 'dr.narish@gmail.com';
     if (isSuper) return;
 
-    const myPerm = userPermissions ? userPermissions[user.uid] : null;
+    const myPerm = userPermissions[user.uid];
     if (myPerm && myPerm.status === 'approved') {
       setSelectedState(myPerm.assignedState || '');
       setSelectedDistrict(myPerm.assignedDistrict || '');
       setSelectedClinic(myPerm.assignedClinic || '');
     }
   }, [user, userPermissions]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const qmsDocRef = getDocRef();
+    const configRef = doc(db, 'qms', 'config');
+    const usersRef = doc(db, 'qms', 'users');
+
+    const unsubConfig = onSnapshot(configRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.hierarchy) setHierarchy(data.hierarchy);
+        if (data.departments) setDepartments(data.departments);
+        if (data.media) setMediaList(data.media);
+      } else {
+        setDoc(configRef, { hierarchy: DEFAULT_HIERARCHY, departments: DEFAULT_DEPARTMENTS, media: DEFAULT_MEDIA }, { merge: true })
+          .catch((err) => console.error("Init config error:", err));
+      }
+    }, (error) => {
+      console.error("Config load error:", error);
+    });
+
+    const unsubUsers = onSnapshot(usersRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserPermissions(docSnap.data());
+      } else {
+        setUserPermissions({});
+      }
+    }, (error) => {
+      console.error("Users sync error:", error);
+      setUserPermissions({});
+    });
+
+    const unsubQueues = onSnapshot(
+      qmsDocRef,
+      (docSnap) => {
+        setDbStatus('connected');
+        if (docSnap.exists()) {
+          setQueues(prev => ({ ...prev, ...docSnap.data() }));
+        }
+      },
+      (error) => {
+        console.error("Queues sync error:", error);
+        setDbStatus('error');
+      }
+    );
+
+    return () => {
+      unsubConfig();
+      unsubUsers();
+      unsubQueues();
+    };
+  }, [user]);
 
   const showModal = (title, message, type, onConfirm) => {
     setModalConfig({
@@ -903,7 +966,7 @@ export default function App() {
   const addClinic = async () => {
     if (!adminSelectedState || !adminSelectedDistrict || !newClinicName.trim()) return;
     const cleanClinicName = newClinicName.trim();
-    const currentClinics = hierarchy[adminSelectedState][adminSelectedDistrict] || [];
+    const currentClinics = hierarchy[adminSelectedState]?.[adminSelectedDistrict] || [];
     if (currentClinics.includes(cleanClinicName)) {
       showModal("Info", "Klinik ini sudah wujud dalam daerah ini.", "info");
       return;
@@ -922,7 +985,7 @@ export default function App() {
 
   const removeClinic = async (clinicToRemove) => {
     showModal('Padam Klinik', `Padam klinik ${clinicToRemove}?`, 'confirm', async () => {
-      const updatedClinics = (hierarchy[adminSelectedState][adminSelectedDistrict] || []).filter(c => c !== clinicToRemove);
+      const updatedClinics = (hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).filter(c => c !== clinicToRemove);
       const updatedHierarchy = {
         ...hierarchy,
         [adminSelectedState]: {
@@ -1214,7 +1277,8 @@ export default function App() {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState][userDistrict] || []) : [];
+                        // Safe optional chaining to prevent undefined lookup crashes during initial setup
+                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
 
                         return (
                           <tr key={u.uid} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
@@ -1230,8 +1294,8 @@ export default function App() {
                                 id={`status-select-${u.uid}`}
                                 name={`statusSelect-${u.uid}`}
                                 className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    'bg-amber-50 text-amber-700 border-amber-200'
+                                    u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                                      'bg-amber-50 text-amber-700 border-amber-200'
                                   }`}
                                 value={u.status}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
@@ -1421,7 +1485,7 @@ export default function App() {
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
                       <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).length}
+                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).length}
                       </span>
                     )}
                   </h3>
@@ -1442,7 +1506,7 @@ export default function App() {
                       </div>
 
                       <div className="flex-1 overflow-y-auto space-y-2">
-                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).map(clinic => (
+                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).map(clinic => (
                           <div
                             key={clinic}
                             className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all"
