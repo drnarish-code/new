@@ -687,16 +687,16 @@ const OutputScreen = ({
                 <div
                   key={call.room}
                   className={`grid grid-cols-2 py-10 px-8 border-b border-slate-800 items-center transition-all duration-700 ${index === 0
-                      ? (highlightedRoom === call.room ? 'bg-blue-600 border-l-8 border-l-white scale-[1.02] shadow-2xl z-10' : 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner')
-                      : 'bg-slate-900/40'
+                    ? (highlightedRoom === call.room ? 'bg-blue-600 border-l-8 border-l-white scale-[1.02] shadow-2xl z-10' : 'bg-blue-900/30 border-l-8 border-l-blue-500 shadow-inner')
+                    : 'bg-slate-900/40'
                     }`}
                 >
                   <div className={`text-4xl font-bold transition-colors duration-700 ${index === 0 ? (highlightedRoom === call.room ? 'text-white' : 'text-blue-400 drop-shadow-md') : 'text-emerald-500/80'}`}>
                     {call.room}
                   </div>
                   <div className={`text-7xl font-extrabold text-right tracking-wider tabular-nums transition-colors duration-700 ${index === 0
-                      ? (highlightedRoom === call.room ? 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.8)]' : 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]')
-                      : 'text-slate-400'
+                    ? (highlightedRoom === call.room ? 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.8)]' : 'text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]')
+                    : 'text-slate-400'
                     }`}>
                     {call.number}
                   </div>
@@ -717,7 +717,7 @@ export default function App() {
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [mediaList, setMediaList] = useState(DEFAULT_MEDIA);
   const [queues, setQueues] = useState({});
-  const [userPermissions, setUserPermissions] = useState({});
+  const [userPermissions, setUserPermissions] = useState(null); // Changed from {} to null to correctly detect initial load
 
   // Superadmin Form States
   const [newClinicName, setNewClinicName] = useState('');
@@ -746,71 +746,7 @@ export default function App() {
   const getDocRef = () => doc(db, 'qms', 'state');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const qmsDocRef = getDocRef();
-    const configRef = doc(db, 'qms', 'config');
-    const usersRef = doc(db, 'qms', 'users');
-
-    const unsubConfig = onSnapshot(configRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.hierarchy) setHierarchy(data.hierarchy);
-        if (data.departments) setDepartments(data.departments);
-        if (data.media) setMediaList(data.media);
-      } else {
-        setDoc(configRef, {
-          hierarchy: DEFAULT_HIERARCHY,
-          departments: DEFAULT_DEPARTMENTS,
-          media: DEFAULT_MEDIA
-        }, { merge: true });
-      }
-    });
-
-    const unsubUsers = onSnapshot(usersRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setUserPermissions(docSnap.data());
-      } else {
-        setDoc(usersRef, {});
-      }
-    });
-
-    const unsubQueues = onSnapshot(
-      qmsDocRef,
-      (docSnap) => {
-        setDbStatus('connected');
-        if (docSnap.exists()) {
-          setQueues(docSnap.data());
-        } else {
-          setDoc(qmsDocRef, {}).catch(err => {
-            console.error("Init error:", err);
-            setDbStatus('error');
-          });
-        }
-      },
-      (error) => {
-        console.error("Sync error:", error);
-        setDbStatus('error');
-      }
-    );
-
-    return () => {
-      unsubConfig();
-      unsubQueues();
-      unsubUsers();
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user || Object.keys(userPermissions).length === 0) return;
+    if (!user || Object.keys(userPermissions || {}).length === 0) return;
     const isSuper = user.email === 'dr.narish@gmail.com';
     if (isSuper) return;
 
@@ -835,7 +771,7 @@ export default function App() {
     const isSuper = user.email === 'dr.narish@gmail.com';
     if (isSuper) return;
 
-    const myPerm = userPermissions[user.uid];
+    const myPerm = userPermissions ? userPermissions[user.uid] : null;
     if (myPerm && myPerm.status === 'approved') {
       setSelectedState(myPerm.assignedState || '');
       setSelectedDistrict(myPerm.assignedDistrict || '');
@@ -1088,7 +1024,7 @@ export default function App() {
   }
 
   const isSuperadmin = user.email === 'dr.narish@gmail.com';
-  const myPermission = userPermissions[user.uid];
+  const myPermission = userPermissions ? userPermissions[user.uid] : null;
 
   if (!isSuperadmin && (!myPermission || myPermission.status !== 'approved')) {
     const isRejected = myPermission?.status === 'rejected';
@@ -1269,12 +1205,12 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.values(userPermissions).length === 0 ? (
+                    {Object.values(userPermissions || {}).length === 0 ? (
                       <tr>
                         <td colSpan="4" className="p-8 text-center text-slate-400 font-medium">Tiada pendaftaran kakitangan dikesan.</td>
                       </tr>
                     ) : (
-                      Object.values(userPermissions).map((u) => {
+                      Object.values(userPermissions || {}).map((u) => {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
@@ -1294,8 +1230,8 @@ export default function App() {
                                 id={`status-select-${u.uid}`}
                                 name={`statusSelect-${u.uid}`}
                                 className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                    u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                                      'bg-amber-50 text-amber-700 border-amber-200'
+                                  u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                                    'bg-amber-50 text-amber-700 border-amber-200'
                                   }`}
                                 value={u.status}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
