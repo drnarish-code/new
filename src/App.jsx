@@ -104,14 +104,6 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
   );
 };
 
-function ActivityIcon(props) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
-
 const InputScreen = ({
   hierarchy,
   departments,
@@ -396,6 +388,7 @@ const OutputScreen = ({
     if (!window.speechSynthesis) return;
 
     try {
+      // Chrome 130+ Guard: Clear queue to bypass browser freezing bugs
       window.speechSynthesis.cancel();
       await playChime();
 
@@ -405,15 +398,29 @@ const OutputScreen = ({
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = 'ms-MY';
 
+      // Chrome 130+ Critical Bypass: Filter out buggy cloud 'Google' voices.
+      // Cloud voices have events broken, so we stick strictly to native offline OS voices.
       const voices = window.speechSynthesis.getVoices();
-      const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
-      if (malayVoice) {
-        utterance.voice = malayVoice;
+
+      const offlineMalayVoice = voices.find(v =>
+        (v.lang.startsWith('ms') || v.lang.startsWith('id')) && v.localService === true
+      );
+
+      const anyMalayVoice = voices.find(v =>
+        (v.lang.startsWith('ms') || v.lang.startsWith('id'))
+      );
+
+      if (offlineMalayVoice) {
+        utterance.voice = offlineMalayVoice;
+      } else if (anyMalayVoice) {
+        utterance.voice = anyMalayVoice;
       }
 
       utterance.rate = 0.85;
       utterance.pitch = 1.0;
 
+      // Wake up synthesis context in Chrome
+      window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.warn("Speech synthesis issue: ", err);
@@ -513,6 +520,16 @@ const OutputScreen = ({
     if (AudioContext && !audioCtxRef.current) {
       audioCtxRef.current = new AudioContext();
     }
+
+    // Perform user gesture Speech Synthesis wake-up unlock
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.getVoices();
+      const silentCheck = new SpeechSynthesisUtterance("");
+      silentCheck.volume = 0;
+      window.speechSynthesis.speak(silentCheck);
+    }
+
     setSetupDone(true);
   };
 
@@ -717,7 +734,7 @@ export default function App() {
   const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [mediaList, setMediaList] = useState(DEFAULT_MEDIA);
   const [queues, setQueues] = useState({});
-  const [userPermissions, setUserPermissions] = useState(null); // NULL indicates "not loaded yet" to bypass initial load bug
+  const [userPermissions, setUserPermissions] = useState(null);
 
   // Superadmin Form States
   const [newClinicName, setNewClinicName] = useState('');
@@ -1063,7 +1080,9 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center animate-in fade-in zoom-in duration-300">
           <div className="mx-auto h-20 w-20 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-200 mb-6">
-            <ActivityIcon className="h-10 w-10 text-white animate-pulse" />
+            <svg className="h-10 w-10 text-white animate-pulse" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 font-sans tracking-tight">PKD QMS Gateway</h2>
           <p className="mt-2 text-sm text-slate-500 mb-8 font-medium">Sistem Pengurusan Giliran Bersepadu & Kawalan Akses</p>
@@ -1277,7 +1296,6 @@ export default function App() {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        // Safe optional chaining to prevent undefined lookup crashes during initial setup
                         const districtClinics = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
 
                         return (
@@ -1368,7 +1386,6 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1533,7 +1550,6 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -1565,7 +1581,6 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
