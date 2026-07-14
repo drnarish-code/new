@@ -41,14 +41,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Prevent browser extensions from cluttering the console with harmless message-channel warnings
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     if (event.reason && (
       event.reason.message?.includes('message channel closed') ||
       event.reason.message?.includes('A listener indicated an asynchronous')
     )) {
-      event.preventDefault(); // Silently swallow the extension warning
+      event.preventDefault();
     }
   });
 }
@@ -75,6 +74,48 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200' },
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
+
+function base64ToArrayBuffer(base64) {
+  const binaryString = window.atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function writeString(view, offset, string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+function pcmToWav(pcm16Data, sampleRate) {
+  const buffer = new ArrayBuffer(44 + pcm16Data.length * 2);
+  const view = new DataView(buffer);
+
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + pcm16Data.length * 2, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // Raw PCM
+  view.setUint16(22, 1, true); // Mono Channel
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // 16 bit
+  writeString(view, 36, 'data');
+  view.setUint32(40, pcm16Data.length * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < pcm16Data.length; i++, offset += 2) {
+    view.setInt16(offset, pcm16Data[i], true);
+  }
+
+  return new Blob([view], { type: 'audio/wav' });
+}
 
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
@@ -339,6 +380,18 @@ const OutputScreen = ({
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
   const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
 
+  const digitToMalay = (char) => {
+    const dict = {
+      '0': 'kosong', '1': 'satu', '2': 'dua', '3': 'tiga', '4': 'empat',
+      '5': 'lima', '6': 'enam', '7': 'tujuh', '8': 'lapan', '9': 'sembilan'
+    };
+    return dict[char] || char;
+  };
+
+  const convertNumberToMalayDigits = (numStr) => {
+    return numStr.toString().split('').map(digitToMalay).join(' ');
+  };
+
   const playChime = () => {
     return new Promise((resolve) => {
       try {
@@ -347,7 +400,6 @@ const OutputScreen = ({
           resolve();
           return;
         }
-
         if (ctx.state === 'suspended') {
           ctx.resume();
         }
@@ -385,45 +437,75 @@ const OutputScreen = ({
   };
 
   const speakNumber = async (room, number) => {
-    if (!window.speechSynthesis) return;
+    await playChime();
+
+    const malayDigits = convertNumberToMalayDigits(number);
+    const textPrompt = `Sebutkan dengan nada yang lembut, tenang dan jelas dalam Bahasa Melayu: Nombor ${malayDigits}, sila ke ${room}.`;
 
     try {
-      // Chrome 130+ Guard: Clear queue to bypass browser freezing bugs
+      const apiKey = ""; // Canvas injects dynamic Gemini API Keys here
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: textPrompt }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: "Despina" } // Warm, casual female tone
+            }
+          }
+        }
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("Gemini TTS API returned failure code.");
+
+      const result = await response.json();
+      const audioPart = result?.candidates?.[0]?.content?.parts?.[0];
+      const audioData = audioPart?.inlineData?.data;
+      const mimeType = audioPart?.inlineData?.mimeType || "audio/L16;rate=24000";
+
+      if (audioData) {
+        const rateMatch = mimeType.match(/rate=(\d+)/);
+        const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+
+        const rawBuffer = base64ToArrayBuffer(audioData);
+        const pcm16 = new Int16Array(rawBuffer);
+        const wavBlob = pcmToWav(pcm16, sampleRate);
+        const audioUrl = URL.createObjectURL(wavBlob);
+
+        const audio = new Audio(audioUrl);
+        audio.play().catch(e => console.warn("Failed playing generated Gemini wave binary", e));
+        return;
+      }
+    } catch (apiError) {
+      console.warn("Gemini TTS failing. Falling back seamlessly to browser WebSpeech API...", apiError);
+    }
+
+    // WEB SPEECH NATIVE FALLBACK ROUTE
+    if (!window.speechSynthesis) return;
+    try {
       window.speechSynthesis.cancel();
-      await playChime();
-
-      const digitString = number.toString().split('').join(' ');
-      const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
-
+      const textToSpeak = `Nombor ${malayDigits}, sila ke ${room}`;
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = 'ms-MY';
 
-      // Chrome 130+ Critical Bypass: Filter out buggy cloud 'Google' voices.
-      // Cloud voices have events broken, so we stick strictly to native offline OS voices.
       const voices = window.speechSynthesis.getVoices();
-
-      const offlineMalayVoice = voices.find(v =>
-        (v.lang.startsWith('ms') || v.lang.startsWith('id')) && v.localService === true
-      );
-
-      const anyMalayVoice = voices.find(v =>
-        (v.lang.startsWith('ms') || v.lang.startsWith('id'))
-      );
-
-      if (offlineMalayVoice) {
-        utterance.voice = offlineMalayVoice;
-      } else if (anyMalayVoice) {
-        utterance.voice = anyMalayVoice;
-      }
+      const malayVoice = voices.find(v => (v.lang.startsWith('ms') || v.lang.startsWith('id')));
+      if (malayVoice) utterance.voice = malayVoice;
 
       utterance.rate = 0.85;
       utterance.pitch = 1.0;
-
-      // Wake up synthesis context in Chrome
       window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.warn("Speech synthesis issue: ", err);
+    } catch (fallbackError) {
+      console.warn("Both Gemini TTS and WebSpeech failed.", fallbackError);
     }
   };
 
@@ -509,7 +591,7 @@ const OutputScreen = ({
       const activeVideo = videoRefs.current[`${activeMedia.url}-${currentMediaIndex}`];
       if (activeVideo) {
         activeVideo.play().catch((err) => {
-          console.warn("Video autoplay prevented by browser constraints.", err);
+          console.warn("Autoplay was prevented.", err);
         });
       }
     }
@@ -521,7 +603,7 @@ const OutputScreen = ({
       audioCtxRef.current = new AudioContext();
     }
 
-    // Perform user gesture Speech Synthesis wake-up unlock
+    // Unlock local TTS audio channel inside the event gesture
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.getVoices();
@@ -736,19 +818,16 @@ export default function App() {
   const [queues, setQueues] = useState({});
   const [userPermissions, setUserPermissions] = useState(null);
 
-  // Superadmin Form States
   const [newClinicName, setNewClinicName] = useState('');
   const [newDeptName, setNewDeptName] = useState('');
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaType, setNewMediaType] = useState('image');
 
-  // Superadmin Hierarchy Builders
   const [newHierarchyState, setNewHierarchyState] = useState('');
   const [newHierarchyDistrict, setNewHierarchyDistrict] = useState('');
   const [adminSelectedState, setAdminSelectedState] = useState('');
   const [adminSelectedDistrict, setAdminSelectedDistrict] = useState('');
 
-  // Routing Selection States
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedClinic, setSelectedClinic] = useState('');
@@ -770,7 +849,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync users database if they log in
   useEffect(() => {
     if (!user || !userPermissions) return;
     const isSuper = user.email === 'dr.narish@gmail.com';
@@ -792,7 +870,6 @@ export default function App() {
     }
   }, [user, userPermissions]);
 
-  // Lock clinics/districts automatically on successfully approved staff accounts
   useEffect(() => {
     if (!user || !userPermissions) return;
     const isSuper = user.email === 'dr.narish@gmail.com';
@@ -1256,6 +1333,7 @@ export default function App() {
 
   return (
     <>
+      { }
       {currentView === 'admin' && (
         <div className="min-h-screen bg-slate-50 flex flex-col">
           <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
@@ -1386,6 +1464,7 @@ export default function App() {
               </div>
             </section>
 
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1550,6 +1629,7 @@ export default function App() {
               </div>
             </section>
 
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -1581,6 +1661,7 @@ export default function App() {
               </div>
             </section>
 
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
@@ -1628,6 +1709,7 @@ export default function App() {
         </div>
       )}
 
+      { }
       {currentView === 'input' && (
         <InputScreen
           hierarchy={hierarchy || {}}
