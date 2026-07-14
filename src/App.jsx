@@ -42,6 +42,18 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Prevent browser extensions from cluttering the console with harmless message-channel warnings
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && (
+      event.reason.message?.includes('message channel closed') ||
+      event.reason.message?.includes('A listener indicated an asynchronous')
+    )) {
+      event.preventDefault(); // Silently swallow the extension warning
+    }
+  });
+}
+
 const DEFAULT_HIERARCHY = {
   "Pahang": {
     "Pekan": [
@@ -318,6 +330,7 @@ const OutputScreen = ({
 
   const audioCtxRef = useRef(null);
   const [highlightedRoom, setHighlightedRoom] = useState(null);
+  const videoRefs = useRef({}); // Safely hold references to HTML5 Video elements
 
   const activeMedia = mediaList[currentMediaIndex] || DEFAULT_MEDIA[0];
 
@@ -373,25 +386,29 @@ const OutputScreen = ({
   const speakNumber = async (room, number) => {
     if (!window.speechSynthesis) return;
 
-    window.speechSynthesis.cancel();
-    await playChime();
+    try {
+      window.speechSynthesis.cancel();
+      await playChime();
 
-    const digitString = number.toString().split('').join(' ');
-    const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
+      const digitString = number.toString().split('').join(' ');
+      const textToSpeak = `Nombor ${digitString}, sila ke ${room}`;
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'ms-MY';
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = 'ms-MY';
 
-    const voices = window.speechSynthesis.getVoices();
-    const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
-    if (malayVoice) {
-      utterance.voice = malayVoice;
+      const voices = window.speechSynthesis.getVoices();
+      const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
+      if (malayVoice) {
+        utterance.voice = malayVoice;
+      }
+
+      utterance.rate = 0.85;
+      utterance.pitch = 1.0;
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Speech synthesis issue: ", err);
     }
-
-    utterance.rate = 0.85;
-    utterance.pitch = 1.0;
-
-    window.speechSynthesis.speak(utterance);
   };
 
   useEffect(() => {
@@ -458,6 +475,32 @@ const OutputScreen = ({
 
     return () => clearTimeout(timer);
   }, [setupDone, currentMediaIndex, mediaList, activeMedia]);
+
+  // Clean side-effect for playing and pausing HTML5 videos to prevent inline mount errors
+  useEffect(() => {
+    if (!setupDone) return;
+
+    // Pause all video refs first
+    Object.keys(videoRefs.current).forEach(key => {
+      const vid = videoRefs.current[key];
+      if (vid) {
+        try {
+          vid.pause();
+          vid.currentTime = 0;
+        } catch (e) { }
+      }
+    });
+
+    // Play active media if it is a video
+    if (activeMedia && activeMedia.type === 'video') {
+      const activeVideo = videoRefs.current[`${activeMedia.url}-${currentMediaIndex}`];
+      if (activeVideo) {
+        activeVideo.play().catch((err) => {
+          console.warn("Video autoplay prevented by browser constraints. Interaction required.", err);
+        });
+      }
+    }
+  }, [currentMediaIndex, activeMedia, setupDone]);
 
   const handleStartTV = () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -592,13 +635,8 @@ const OutputScreen = ({
                 muted
                 playsInline
                 onEnded={() => setCurrentMediaIndex(prev => (prev + 1) % mediaList.length)}
-                ref={el => {
-                  if (el) {
-                    if (index === currentMediaIndex && setupDone) el.play().catch(() => { });
-                    else { el.pause(); el.currentTime = 0; }
-                  }
-                }}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100' : 'opacity-0'
+                ref={el => { videoRefs.current[`${media.url}-${index}`] = el; }}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                   }`}
               />
             ) : (
@@ -606,12 +644,12 @@ const OutputScreen = ({
                 key={`${media.url}-${index}`}
                 src={media.url}
                 alt="Gallery"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100' : 'opacity-0'
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                   }`}
               />
             )
           ))}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none z-10" />
           <div className="absolute bottom-10 left-10 z-10">
             <p className="text-white/80 text-2xl font-semibold bg-black/40 px-4 py-2 rounded-lg backdrop-blur-sm shadow-xl">
               Sila tunggu nombor anda dipanggil
@@ -1200,7 +1238,6 @@ export default function App() {
 
           <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Users className="h-6 w-6 text-blue-600 mr-2" />
