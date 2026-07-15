@@ -11,7 +11,7 @@ import {
   Play,
   Volume2,
   Film,
-  Image as ImageIcon,
+  ImageIcon as ImageIconIcon,
   MapPin,
   Map,
   ShieldAlert,
@@ -134,7 +134,7 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in fade-in zoom-in duration-200 text-slate-800">
         <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
         <p className="text-slate-600 mb-6">{message}</p>
         <div className="flex space-x-3">
@@ -179,7 +179,6 @@ const InputScreen = ({
     ? (hierarchy[selectedState][selectedDistrict] || [])
     : [];
 
-  // Determine active number via ES5 safe paths
   const path = [selectedState, selectedDistrict, selectedClinic, selectedDept, localRoom];
   const roomData = getNested(queues, path);
   const activeNumber = roomData && typeof roomData === 'object' ? roomData.number : (roomData || '');
@@ -219,7 +218,7 @@ const InputScreen = ({
   if (step === 1) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-sm border">
+        <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-slate-800">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-800">Sesi Panggilan</h2>
@@ -239,7 +238,7 @@ const InputScreen = ({
                 id="input-state"
                 name="inputState"
                 disabled={!isSuperadmin}
-                className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -258,7 +257,7 @@ const InputScreen = ({
                 id="input-district"
                 name="inputDistrict"
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -276,7 +275,7 @@ const InputScreen = ({
                 id="input-clinic"
                 name="inputClinic"
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-3 border rounded-xl bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:bg-slate-100 disabled:text-slate-500 font-medium"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -290,7 +289,7 @@ const InputScreen = ({
               <select
                 id="input-dept"
                 name="inputDept"
-                className="w-full p-3 border rounded-xl bg-slate-50 font-medium"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -304,7 +303,7 @@ const InputScreen = ({
               <select
                 id="input-room"
                 name="inputRoom"
-                className="w-full p-3 border rounded-xl bg-slate-50 font-medium"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium"
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
               >
@@ -570,10 +569,10 @@ const OutputScreen = ({
   useEffect(() => {
     if (!setupDone || !selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return;
 
-    const currentData = getNested(queues, [selectedState, selectedDistrict, selectedClinic, selectedDept]);
+    const pathArray = [selectedState, selectedDistrict, selectedClinic, selectedDept];
+    const currentData = getNested(queues, pathArray);
     if (!currentData) return;
 
-    // Backward-compatible safe structure readers
     const getNum = (val) => {
       if (!val) return '';
       if (typeof val === 'object') return val.number || '';
@@ -605,7 +604,6 @@ const OutputScreen = ({
       const currentTs = getTs(val);
       const prevTs = getTs(prevVal);
 
-      // TRIGGER CALL: If number changed, OR if same number was called again (indicated by newer timestamp)
       if (
         currentNum !== prevNum ||
         (currentNum === prevNum && currentTs > prevTs && currentNum !== "0000" && currentNum !== "----")
@@ -688,7 +686,7 @@ const OutputScreen = ({
 
   if (!setupDone) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-slate-200">
         <div className="w-full max-w-md bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700 text-white">
           <h2 className="text-2xl font-bold mb-2 text-center">Konfigurasi TV Display</h2>
           <p className="text-xs text-slate-400 text-center uppercase tracking-wider mb-6">
@@ -912,7 +910,7 @@ export default function App() {
 
   const getDocRef = () => doc(db, 'qms', 'state');
 
-  // Injecting Tailwind CDN dynamically to fix styles immediately on older browsers and Sraf engines
+  // Dynamically load Tailwind framework at runtime
   useEffect(() => {
     const cdnId = 'dynamic-tailwind-framework-cdn';
     if (!document.getElementById(cdnId)) {
@@ -1004,7 +1002,6 @@ export default function App() {
         if (docSnap.exists()) {
           setQueues(prev => {
             var updated = {};
-            // ES5 compatible iteration & cloning
             Object.keys(prev).forEach(k => { updated[k] = prev[k]; });
             var fresh = docSnap.data();
             Object.keys(fresh).forEach(k => { updated[k] = fresh[k]; });
@@ -1072,8 +1069,6 @@ export default function App() {
     if (!user) return showModal("Ralat", "Sila log masuk dahulu.", "info");
 
     const timestamp = Date.now();
-
-    // Deep clone state safely for backward compatibility
     const updatedQueues = JSON.parse(JSON.stringify(queues));
     if (!updatedQueues[stateVal]) updatedQueues[stateVal] = {};
     if (!updatedQueues[stateVal][districtVal]) updatedQueues[stateVal][districtVal] = {};
@@ -1330,7 +1325,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border flex items-center space-x-3 text-left">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center space-x-3 text-left">
             <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border shadow-sm" />
             <div className="overflow-hidden">
               <p className="font-bold text-slate-800 truncate">{user.displayName}</p>
@@ -1358,7 +1353,7 @@ export default function App() {
   if (currentView === 'login') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-200">
+        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-200 text-slate-800">
           <div className="text-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div className="mx-auto h-16 w-16 mb-4 relative">
               {user.photoURL ? (
@@ -1449,9 +1444,8 @@ export default function App() {
 
   return (
     <>
-      { }
       {currentView === 'admin' && (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
+        <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
           <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
               <h1 className="text-xl font-bold text-slate-800">Dashboard Superadmin</h1>
@@ -1464,6 +1458,7 @@ export default function App() {
 
           <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
 
+            {/* STAFF USER LIST PANEL WITH EXPLICIT HIGH CONTRAST INPUT STYLES */}
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Users className="h-6 w-6 text-blue-600 mr-2" />
@@ -1490,7 +1485,7 @@ export default function App() {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState][userDistrict] || []) : [];
+                        const districtClinics = (userState && userDistrict && hierarchy[userState]) ? (hierarchy[userState][userDistrict] || []) : [];
 
                         return (
                           <tr key={u.uid} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
@@ -1505,7 +1500,7 @@ export default function App() {
                               <select
                                 id={`status-select-${u.uid}`}
                                 name={`statusSelect-${u.uid}`}
-                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none bg-white text-slate-800 ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                     u.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
                                       'bg-amber-50 text-amber-700 border-amber-200'
                                   }`}
@@ -1522,7 +1517,7 @@ export default function App() {
                                 <select
                                   id={`assigned-state-${u.uid}`}
                                   name={`assignedState-${u.uid}`}
-                                  className="text-xs p-2 border rounded-lg bg-white outline-none w-32"
+                                  className="text-xs p-2 border border-slate-300 rounded-lg bg-white text-slate-800 outline-none w-32"
                                   value={userState}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedState', e.target.value);
@@ -1538,7 +1533,7 @@ export default function App() {
                                   id={`assigned-district-${u.uid}`}
                                   name={`assignedDistrict-${u.uid}`}
                                   disabled={!userState}
-                                  className="text-xs p-2 border rounded-lg bg-white outline-none disabled:opacity-50 w-32"
+                                  className="text-xs p-2 border border-slate-300 rounded-lg bg-white text-slate-800 outline-none disabled:opacity-50 w-32"
                                   value={userDistrict}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedDistrict', e.target.value);
@@ -1553,7 +1548,7 @@ export default function App() {
                                   id={`assigned-clinic-${u.uid}`}
                                   name={`assignedClinic-${u.uid}`}
                                   disabled={!userDistrict}
-                                  className="text-xs p-2 border rounded-lg bg-white outline-none disabled:opacity-50 w-44"
+                                  className="text-xs p-2 border border-slate-300 rounded-lg bg-white text-slate-800 outline-none disabled:opacity-50 w-44"
                                   value={u.assignedClinic || ''}
                                   onChange={(e) => updateUserAssignment(u.uid, 'assignedClinic', e.target.value)}
                                 >
@@ -1580,7 +1575,7 @@ export default function App() {
               </div>
             </section>
 
-            { }
+            {/* STRUTURED REGIONAL MANAGEMENT */}
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1604,7 +1599,7 @@ export default function App() {
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
                       onChange={(e) => setNewHierarchyState(e.target.value)}
-                      className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-purple-500"
+                      className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <button onClick={addState} className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                   </div>
@@ -1656,7 +1651,7 @@ export default function App() {
                           placeholder={`Daerah Baru di ${adminSelectedState}...`}
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
-                          className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button onClick={addDistrict} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1712,7 +1707,7 @@ export default function App() {
                           placeholder={`Klinik di ${adminSelectedDistrict}...`}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
-                          className="border p-2 rounded-lg text-sm flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                         <button onClick={addClinic} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1745,12 +1740,12 @@ export default function App() {
               </div>
             </section>
 
-            { }
+            {/* DEPARMENT / ZONING SECTION */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Settings className="h-6 w-6 text-orange-600 mr-2" />
-                  <h2 className="text-lg font-bold">3. Jabatan / Zon (Zoning)</h2>
+                  <h2 className="text-lg font-bold text-slate-800">3. Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
                   <input
@@ -1760,7 +1755,7 @@ export default function App() {
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    className="border p-2 rounded-lg text-sm w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                   <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah</button>
                 </div>
@@ -1777,11 +1772,12 @@ export default function App() {
               </div>
             </section>
 
+            {/* PLAYLIST MEDIA CONFIGURATION */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Monitor className="h-6 w-6 text-emerald-600 mr-2" />
-                  <h2 className="text-lg font-bold">4. TV Media Playlist</h2>
+                  <h2 className="text-lg font-bold text-slate-800">4. TV Media Playlist</h2>
                 </div>
                 <div className="flex space-x-2">
                   <select
@@ -1789,7 +1785,7 @@ export default function App() {
                     name="adminMediaType"
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border p-2 rounded-lg text-sm bg-slate-50 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 outline-none"
                   >
                     <option value="image">Image</option>
                     <option value="video">Video</option>
@@ -1801,7 +1797,7 @@ export default function App() {
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
                     onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="border p-2 rounded-lg text-sm w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                   <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah URL</button>
                 </div>
@@ -1810,7 +1806,7 @@ export default function App() {
                 {mediaList.map((media, idx) => (
                   <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
                     <div className="flex items-center space-x-3 overflow-hidden">
-                      {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIcon className="h-5 w-5 text-slate-500 shrink-0" />}
+                      {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIconIcon className="h-5 w-5 text-slate-500 shrink-0" />}
                       <span className="font-medium text-slate-700 truncate text-sm">{media.url}</span>
                     </div>
                     <button onClick={() => removeMedia(idx)} className="text-slate-400 hover:text-red-500 transition-colors ml-4 shrink-0">
