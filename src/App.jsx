@@ -912,6 +912,17 @@ export default function App() {
 
   const getDocRef = () => doc(db, 'qms', 'state');
 
+  // Injecting Tailwind CDN dynamically to fix styles immediately on older browsers and Sraf engines
+  useEffect(() => {
+    const cdnId = 'dynamic-tailwind-framework-cdn';
+    if (!document.getElementById(cdnId)) {
+      const scriptNode = document.createElement('script');
+      scriptNode.id = cdnId;
+      scriptNode.src = 'https://cdn.tailwindcss.com';
+      document.head.appendChild(scriptNode);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -991,7 +1002,14 @@ export default function App() {
       (docSnap) => {
         setDbStatus('connected');
         if (docSnap.exists()) {
-          setQueues(prev => ({ ...prev, ...docSnap.data() }));
+          setQueues(prev => {
+            var updated = {};
+            // ES5 compatible iteration & cloning
+            Object.keys(prev).forEach(k => { updated[k] = prev[k]; });
+            var fresh = docSnap.data();
+            Object.keys(fresh).forEach(k => { updated[k] = fresh[k]; });
+            return updated;
+          });
         }
       },
       (error) => {
@@ -1012,9 +1030,19 @@ export default function App() {
       isOpen: true, title, message, type,
       onConfirm: () => {
         if (onConfirm) onConfirm();
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        setModalConfig(prev => {
+          var updated = {};
+          Object.keys(prev).forEach(k => { updated[k] = prev[k]; });
+          updated.isOpen = false;
+          return updated;
+        });
       },
-      onCancel: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      onCancel: () => setModalConfig(prev => {
+        var updated = {};
+        Object.keys(prev).forEach(k => { updated[k] = prev[k]; });
+        updated.isOpen = false;
+        return updated;
+      })
     });
   };
 
@@ -1044,7 +1072,9 @@ export default function App() {
     if (!user) return showModal("Ralat", "Sila log masuk dahulu.", "info");
 
     const timestamp = Date.now();
-    const updatedQueues = { ...queues };
+
+    // Deep clone state safely for backward compatibility
+    const updatedQueues = JSON.parse(JSON.stringify(queues));
     if (!updatedQueues[stateVal]) updatedQueues[stateVal] = {};
     if (!updatedQueues[stateVal][districtVal]) updatedQueues[stateVal][districtVal] = {};
     if (!updatedQueues[stateVal][districtVal][clinicVal]) updatedQueues[stateVal][districtVal][clinicVal] = {};
@@ -1081,7 +1111,8 @@ export default function App() {
       showModal("Info", "Negeri ini sudah wujud.", "info");
       return;
     }
-    const updatedHierarchy = { ...hierarchy, [cleanStateName]: {} };
+    const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
+    updatedHierarchy[cleanStateName] = {};
     setHierarchy(updatedHierarchy);
     setNewHierarchyState('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1089,7 +1120,7 @@ export default function App() {
 
   const removeState = async (stateToRemove) => {
     showModal('Padam Negeri', `Padam negeri ${stateToRemove} dan semua daerah & klinik di bawahnya?`, 'confirm', async () => {
-      const updatedHierarchy = { ...hierarchy };
+      const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
       delete updatedHierarchy[stateToRemove];
       setHierarchy(updatedHierarchy);
       if (adminSelectedState === stateToRemove) {
@@ -1108,13 +1139,10 @@ export default function App() {
       showModal("Info", "Daerah ini sudah wujud dalam negeri ini.", "info");
       return;
     }
-    const updatedHierarchy = {
-      ...hierarchy,
-      [adminSelectedState]: {
-        ...stateObj,
-        [cleanDistrictName]: []
-      }
-    };
+    const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
+    if (!updatedHierarchy[adminSelectedState]) updatedHierarchy[adminSelectedState] = {};
+    updatedHierarchy[adminSelectedState][cleanDistrictName] = [];
+
     setHierarchy(updatedHierarchy);
     setNewHierarchyDistrict('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1122,8 +1150,10 @@ export default function App() {
 
   const removeDistrict = async (districtToRemove) => {
     showModal('Padam Daerah', `Padam daerah ${districtToRemove} dan semua klinik di bawahnya?`, 'confirm', async () => {
-      const updatedHierarchy = { ...hierarchy };
-      delete updatedHierarchy[adminSelectedState][districtToRemove];
+      const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
+      if (updatedHierarchy[adminSelectedState]) {
+        delete updatedHierarchy[adminSelectedState][districtToRemove];
+      }
       setHierarchy(updatedHierarchy);
       if (adminSelectedDistrict === districtToRemove) {
         setAdminSelectedDistrict('');
@@ -1135,18 +1165,16 @@ export default function App() {
   const addClinic = async () => {
     if (!adminSelectedState || !adminSelectedDistrict || !newClinicName.trim()) return;
     const cleanClinicName = newClinicName.trim();
-    const currentClinics = hierarchy[adminSelectedState]?.[adminSelectedDistrict] || [];
-    if (currentClinics.includes(cleanClinicName)) {
+    const currentClinics = getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || [];
+    if (currentClinics.indexOf(cleanClinicName) !== -1) {
       showModal("Info", "Klinik ini sudah wujud dalam daerah ini.", "info");
       return;
     }
-    const updatedHierarchy = {
-      ...hierarchy,
-      [adminSelectedState]: {
-        ...hierarchy[adminSelectedState],
-        [adminSelectedDistrict]: [...currentClinics, cleanClinicName]
-      }
-    };
+    const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
+    if (!updatedHierarchy[adminSelectedState]) updatedHierarchy[adminSelectedState] = {};
+    if (!updatedHierarchy[adminSelectedState][adminSelectedDistrict]) updatedHierarchy[adminSelectedState][adminSelectedDistrict] = [];
+    updatedHierarchy[adminSelectedState][adminSelectedDistrict].push(cleanClinicName);
+
     setHierarchy(updatedHierarchy);
     setNewClinicName('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1154,14 +1182,17 @@ export default function App() {
 
   const removeClinic = async (clinicToRemove) => {
     showModal('Padam Klinik', `Padam klinik ${clinicToRemove}?`, 'confirm', async () => {
-      const updatedClinics = (hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).filter(c => c !== clinicToRemove);
-      const updatedHierarchy = {
-        ...hierarchy,
-        [adminSelectedState]: {
-          ...hierarchy[adminSelectedState],
-          [adminSelectedDistrict]: updatedClinics
+      const clinics = getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || [];
+      const updatedClinics = [];
+      for (var i = 0; i < clinics.length; i++) {
+        if (clinics[i] !== clinicToRemove) {
+          updatedClinics.push(clinics[i]);
         }
-      };
+      }
+      const updatedHierarchy = JSON.parse(JSON.stringify(hierarchy));
+      if (updatedHierarchy[adminSelectedState] && updatedHierarchy[adminSelectedState][adminSelectedDistrict]) {
+        updatedHierarchy[adminSelectedState][adminSelectedDistrict] = updatedClinics;
+      }
       setHierarchy(updatedHierarchy);
       await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
     });
@@ -1169,7 +1200,9 @@ export default function App() {
 
   const addDepartment = async () => {
     if (!newDeptName.trim()) return;
-    const updatedDepts = [...departments, newDeptName.trim()];
+    const updatedDepts = [];
+    for (var i = 0; i < departments.length; i++) updatedDepts.push(departments[i]);
+    updatedDepts.push(newDeptName.trim());
     setDepartments(updatedDepts);
     setNewDeptName('');
     await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
@@ -1177,7 +1210,10 @@ export default function App() {
 
   const removeDepartment = async (deptToRemove) => {
     showModal('Padam', `Pasti mahu memadam ${deptToRemove}?`, 'confirm', async () => {
-      const updatedDepts = departments.filter(d => d !== deptToRemove);
+      const updatedDepts = [];
+      for (var i = 0; i < departments.length; i++) {
+        if (departments[i] !== deptToRemove) updatedDepts.push(departments[i]);
+      }
       setDepartments(updatedDepts);
       await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
     });
@@ -1185,7 +1221,9 @@ export default function App() {
 
   const addMedia = async () => {
     if (!newMediaUrl.trim()) return;
-    const updatedMedia = [...mediaList, { url: newMediaUrl.trim(), type: newMediaType }];
+    const updatedMedia = [];
+    for (var i = 0; i < mediaList.length; i++) updatedMedia.push(mediaList[i]);
+    updatedMedia.push({ url: newMediaUrl.trim(), type: newMediaType });
     setMediaList(updatedMedia);
     setNewMediaUrl('');
     await setDoc(doc(db, 'qms', 'config'), { media: updatedMedia }, { merge: true });
@@ -1193,7 +1231,10 @@ export default function App() {
 
   const removeMedia = async (idxToRemove) => {
     showModal('Padam Media', `Pasti mahu memadam media ini dari playlist?`, 'confirm', async () => {
-      const updatedMedia = mediaList.filter((_, idx) => idx !== idxToRemove);
+      const updatedMedia = [];
+      for (var i = 0; i < mediaList.length; i++) {
+        if (i !== idxToRemove) updatedMedia.push(mediaList[i]);
+      }
       setMediaList(updatedMedia);
       await setDoc(doc(db, 'qms', 'config'), { media: updatedMedia }, { merge: true });
     });
@@ -1213,7 +1254,7 @@ export default function App() {
 
   const deleteUserRecord = async (uid) => {
     showModal('Padam Kakitangan', 'Padam rekod pendaftaran kakitangan ini?', 'confirm', async () => {
-      const updatedPermissions = { ...userPermissions };
+      const updatedPermissions = JSON.parse(JSON.stringify(userPermissions));
       delete updatedPermissions[uid];
       await setDoc(doc(db, 'qms', 'users'), updatedPermissions);
     });
@@ -1408,6 +1449,7 @@ export default function App() {
 
   return (
     <>
+      { }
       {currentView === 'admin' && (
         <div className="min-h-screen bg-slate-50 flex flex-col">
           <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
@@ -1439,18 +1481,16 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.values(userPermissions || {}).length === 0 ? (
+                    {(!userPermissions || Object.values(userPermissions).length === 0) ? (
                       <tr>
                         <td colSpan="4" className="p-8 text-center text-slate-400 font-medium">Tiada pendaftaran kakitangan dikesan.</td>
                       </tr>
                     ) : (
-                      Object.values(userPermissions || {}).map((u) => {
+                      Object.values(userPermissions).map((u) => {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        const districtClinics = (userState && userDistrict && hierarchy[userState] && hierarchy[userState][userDistrict])
-                          ? (hierarchy[userState][userDistrict] || [])
-                          : [];
+                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState][userDistrict] || []) : [];
 
                         return (
                           <tr key={u.uid} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
@@ -1657,7 +1697,7 @@ export default function App() {
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
                       <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).length}
+                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).length}
                       </span>
                     )}
                   </h3>
