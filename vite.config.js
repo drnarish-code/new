@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     // Transpile code to be compatible with older TV browsers (Chrome 47+)
     target: 'es2015',
-    minify: 'terser',
+    minify: 'esbuild', // Uses the built-in esbuild engine instead of requiring the optional 'terser' package
     cssTarget: 'chrome47',
   }
 });
