@@ -3,12 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// Safe bootstrap function to protect older TV rendering engines
 function mountApp() {
   var rootElement = document.getElementById('root');
 
+  // If DOM parser hasn't loaded container, dynamically generate it to avoid crash
   if (!rootElement) {
-    // If DOM parsing hasn't created the root container yet, create it on the fly
     rootElement = document.createElement('div');
     rootElement.id = 'root';
     document.body.appendChild(rootElement);
@@ -22,7 +21,6 @@ function mountApp() {
   }
 }
 
-// Check current DOM parsing status to prevent racing condition crashes
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', mountApp);
 } else {

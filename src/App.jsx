@@ -45,6 +45,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Safe Sraf Error Guard: intercepts and suppresses internal TV wrapper message-channel exceptions
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', function (event) {
     if (event.reason && event.reason.message && (
@@ -79,6 +80,7 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
 
+// Safe Deep Object Tree Crawler (Avoids optional chaining ?. on older TVs)
 function getNested(obj, pathArray) {
   var current = obj;
   if (!current) return undefined;
@@ -91,6 +93,7 @@ function getNested(obj, pathArray) {
   return current;
 }
 
+// Safe ES5 Object values collector (Replaces Object.values() which crashes Sraf)
 function getObjectValues(obj) {
   if (!obj) return [];
   var keys = Object.keys(obj);
@@ -101,6 +104,7 @@ function getObjectValues(obj) {
   return values;
 }
 
+// Safe ES5 Object Assigner (Replaces Object spread {...obj} syntax)
 function assignObjects() {
   var to = {};
   for (var i = 0; i < arguments.length; i++) {
@@ -116,6 +120,7 @@ function assignObjects() {
   return to;
 }
 
+// Get URL parameters on older TV engines
 function getQueryParam(name) {
   if (typeof window === 'undefined') return '';
   var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
@@ -1738,7 +1743,7 @@ export default function App() {
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
-                <h2 className="text-xl font-bold font-sans">2. Pengurusan Struktur Regional (Klinik)</h2>
+                <h2 className="text-xl font-bold text-slate-800 font-sans">2. Pengurusan Struktur Regional (Klinik)</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1872,9 +1877,9 @@ export default function App() {
                         {(getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || []).map(clinic => (
                           <div
                             key={clinic}
-                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800 font-semibold text-sm"
+                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800"
                           >
-                            <span className="font-semibold text-slate-800 text-sm font-sans">{clinic}</span>
+                            <span className="font-semibold text-slate-850 text-sm font-sans">{clinic}</span>
                             <button
                               onClick={() => removeClinic(clinic)}
                               className="text-slate-400 hover:text-red-500"
@@ -2005,7 +2010,7 @@ export default function App() {
                     id="gen-district"
                     name="genDistrict"
                     disabled={!genState}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100"
                     value={genDistrict}
                     onChange={(e) => {
                       setGenDistrict(e.target.value);
@@ -2023,7 +2028,7 @@ export default function App() {
                     id="gen-clinic"
                     name="genClinic"
                     disabled={!genDistrict}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100"
                     value={genClinic}
                     onChange={(e) => setGenClinic(e.target.value)}
                   >
@@ -2038,7 +2043,7 @@ export default function App() {
                     id="gen-dept"
                     name="genDept"
                     disabled={!genClinic}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100"
                     value={genDept}
                     onChange={(e) => setGenDept(e.target.value)}
                   >
