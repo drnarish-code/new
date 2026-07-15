@@ -120,12 +120,12 @@ function pcmToWav(pcm16Data, sampleRate) {
   writeString(view, 8, 'WAVE');
   writeString(view, 12, 'fmt ');
   view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // Raw PCM
-  view.setUint16(22, 1, true); // Mono Channel
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // byte rate
-  view.setUint16(32, 2, true); // block align
-  view.setUint16(34, 16, true); // 16 bit
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
   writeString(view, 36, 'data');
   view.setUint32(40, pcm16Data.length * 2, true);
 
@@ -778,7 +778,7 @@ const OutputScreen = ({
 
             <div className="pt-4 flex space-x-3">
               <button
-                onClick={() => setCurrentView('login')}
+                onClick={() => { setSetupDone(false); setCurrentView('login'); }}
                 className="flex-1 py-4 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300"
               >
                 Kembali
@@ -786,7 +786,7 @@ const OutputScreen = ({
               <button
                 disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center"
+                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-50 flex items-center justify-center"
               >
                 <Play className="h-5 w-5 mr-2" /> Mula TV
               </button>
@@ -1601,7 +1601,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* STRUTURED REGIONAL MANAGEMENT */}
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1610,7 +1609,6 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                {/* STATE BOX */}
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
                     <span>Negeri</span>
@@ -1625,7 +1623,7 @@ export default function App() {
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
                       onChange={(e) => setNewHierarchyState(e.target.value)}
-                      className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 flex-1 outline-none focus:ring-2 focus:ring-purple-500"
+                      className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <button onClick={addState} className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                   </div>
@@ -1641,7 +1639,7 @@ export default function App() {
                         className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-100 border-purple-500 shadow-sm' : 'bg-white hover:bg-slate-100'
                           }`}
                       >
-                        <span className="font-semibold text-slate-850">{stateName}</span>
+                        <span className="font-semibold text-slate-800">{stateName}</span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1656,7 +1654,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* DISTRICT BOX */}
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
                     <span>Daerah</span>
@@ -1677,7 +1674,7 @@ export default function App() {
                           placeholder={`Daerah Baru di ${adminSelectedState}...`}
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
-                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 flex-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button onClick={addDistrict} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1690,7 +1687,7 @@ export default function App() {
                             className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-100 border-blue-500 shadow-sm' : 'bg-white hover:bg-slate-100'
                               }`}
                           >
-                            <span className="font-semibold text-slate-850">{distName}</span>
+                            <span className="font-semibold text-slate-800">{distName}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1712,7 +1709,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* CLINIC BOX */}
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
                     <span>Klinik Kesihatan</span>
@@ -1733,7 +1729,7 @@ export default function App() {
                           placeholder={`Klinik di ${adminSelectedDistrict}...`}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
-                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                         <button onClick={addClinic} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1742,9 +1738,9 @@ export default function App() {
                         {(getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || []).map(clinic => (
                           <div
                             key={clinic}
-                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all"
+                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800"
                           >
-                            <span className="font-semibold text-slate-850 text-sm">{clinic}</span>
+                            <span className="font-semibold text-slate-800 text-sm">{clinic}</span>
                             <button
                               onClick={() => removeClinic(clinic)}
                               className="text-slate-400 hover:text-red-500"
@@ -1766,12 +1762,11 @@ export default function App() {
               </div>
             </section>
 
-            {/* DEPARMENT / ZONING SECTION */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Settings className="h-6 w-6 text-orange-600 mr-2" />
-                  <h2 className="text-lg font-bold text-slate-850">3. Jabatan / Zon (Zoning)</h2>
+                  <h2 className="text-lg font-bold text-slate-800">3. Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
                   <input
@@ -1781,14 +1776,14 @@ export default function App() {
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                   <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
                 {departments.map((dept, idx) => (
-                  <div key={idx} className="px-4 py-2 border rounded-full flex items-center bg-slate-50 shadow-sm space-x-3">
+                  <div key={idx} className="px-4 py-2 border rounded-full flex items-center bg-slate-50 shadow-sm space-x-3 text-slate-800">
                     <span className="font-semibold text-slate-700 text-sm">{dept}</span>
                     <button onClick={() => removeDepartment(dept)} className="text-slate-400 hover:text-red-500 transition-colors">
                       <XCircle className="h-4 w-4" />
@@ -1798,12 +1793,11 @@ export default function App() {
               </div>
             </section>
 
-            {/* PLAYLIST MEDIA CONFIGURATION */}
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Monitor className="h-6 w-6 text-emerald-600 mr-2" />
-                  <h2 className="text-lg font-bold text-slate-850">4. TV Media Playlist</h2>
+                  <h2 className="text-lg font-bold text-slate-800">4. TV Media Playlist</h2>
                 </div>
                 <div className="flex space-x-2">
                   <select
@@ -1811,7 +1805,7 @@ export default function App() {
                     name="adminMediaType"
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 outline-none"
                   >
                     <option value="image">Image</option>
                     <option value="video">Video</option>
@@ -1823,14 +1817,14 @@ export default function App() {
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
                     onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-850 w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
                   />
                   <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah URL</button>
                 </div>
               </div>
               <div className="space-y-3">
                 {mediaList.map((media, idx) => (
-                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors text-slate-800">
                     <div className="flex items-center space-x-3 overflow-hidden">
                       {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIcon className="h-5 w-5 text-slate-500 shrink-0" />}
                       <span className="font-medium text-slate-700 truncate text-sm">{media.url}</span>
@@ -1846,7 +1840,6 @@ export default function App() {
         </div>
       )}
 
-      {/* SCREEN ROUTING */}
       {currentView === 'input' && (
         <InputScreen
           hierarchy={hierarchy || {}}
