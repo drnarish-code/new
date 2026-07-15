@@ -42,7 +42,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Prevent modern chromium context channels from leaking or throwing in older Sraf environments
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', function (event) {
     if (event.reason && event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) {
@@ -74,7 +73,6 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
 
-// Helper to deeply access nested objects without ES2020 Optional Chaining (?.)
 function getNested(obj, pathArray) {
   var current = obj;
   if (!current) return undefined;
@@ -87,7 +85,6 @@ function getNested(obj, pathArray) {
   return current;
 }
 
-// Helper to simulate Object.values() for engines below Chrome 54 (Sraf Smart TVs)
 function getObjectValues(obj) {
   if (!obj) return [];
   return Object.keys(obj).map(function (key) {
@@ -594,8 +591,13 @@ const OutputScreen = ({
     if (!previousQueues) {
       setPreviousQueues(JSON.parse(JSON.stringify(currentData)));
       const initial = Object.keys(currentData)
-        .map(([room, val]) => ({ room, number: getNum(val), timestamp: getTs(val) }))
-        .filter(({ number }) => number !== "0000" && number !== "----")
+        .map(function (room) {
+          var val = currentData[room];
+          return { room: room, number: getNum(val), timestamp: getTs(val) };
+        })
+        .filter(function (item) {
+          return item.number !== "0000" && item.number !== "----";
+        })
         .slice(0, 4);
       setRecentCalls(initial);
       return;
@@ -604,8 +606,11 @@ const OutputScreen = ({
     let roomChanged = null;
     let newNumber = null;
 
-    for (const [room, val] of Object.entries(currentData)) {
-      const prevVal = previousQueues[room];
+    var rooms = Object.keys(currentData);
+    for (var i = 0; i < rooms.length; i++) {
+      var room = rooms[i];
+      var val = currentData[room];
+      var prevVal = previousQueues[room];
       const currentNum = getNum(val);
       const prevNum = getNum(prevVal);
       const currentTs = getTs(val);
@@ -1465,7 +1470,6 @@ export default function App() {
 
           <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
 
-            {/* STAFF USER LIST PANEL WITH EXPLICIT HIGH CONTRAST INPUT STYLES */}
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Users className="h-6 w-6 text-blue-600 mr-2" />
@@ -1699,7 +1703,7 @@ export default function App() {
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
                       <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).length}
+                        {getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]).length}
                       </span>
                     )}
                   </h3>
@@ -1720,7 +1724,7 @@ export default function App() {
                       </div>
 
                       <div className="flex-1 overflow-y-auto space-y-2">
-                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).map(clinic => (
+                        {(getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || []).map(clinic => (
                           <div
                             key={clinic}
                             className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all"

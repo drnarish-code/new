@@ -11,7 +11,6 @@ export default defineConfig({
         if (!ctx || !ctx.bundle) return html;
         let newHtml = html;
         
-        // 1. Inline production compiled stylesheets
         for (const [fileName, file] of Object.entries(ctx.bundle)) {
           if (file.type === 'asset' && file.fileName.endsWith('.css')) {
             const styleTagRegex = new RegExp(`<link[^>]*href="[^"]*${file.fileName}"[^>]*>`);
@@ -20,7 +19,6 @@ export default defineConfig({
           }
         }
 
-        // 2. Inline production compiled JavaScript scripts
         for (const [fileName, file] of Object.entries(ctx.bundle)) {
           if (file.type === 'chunk' && fileName.endsWith('.js')) {
             const scriptTagRegex = new RegExp(`<script[^>]*src="[^"]*${file.fileName}"[^>]*><\\/script>`);
@@ -29,7 +27,6 @@ export default defineConfig({
           }
         }
 
-        // 3. Remove all module tags and ES preloads to allow older TV engines to execute as classic scripts
         newHtml = newHtml.replace(/type="module" crossorigin/g, '');
         newHtml = newHtml.replace(/type="module"/g, '');
         newHtml = newHtml.replace(/crossorigin/g, '');
@@ -40,9 +37,6 @@ export default defineConfig({
     }
   ],
   build: {
-    target: 'es2015',
-    cssTarget: 'chrome47',
-    minify: 'esbuild',
-    assetsInlineLimit: 100000000 // Inline images, SVGs, and smaller assets automatically
+    assetsInlineLimit: 100000000 // Inline images and small assets inside files
   }
 });
