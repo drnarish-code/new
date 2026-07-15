@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// Safe bootstrap function to protect older TV rendering loops
+// Safe bootstrap function to protect older TV rendering engines
 function mountApp() {
   var rootElement = document.getElementById('root');
 
@@ -16,7 +16,7 @@ function mountApp() {
 
   try {
     var root = ReactDOM.createRoot(rootElement);
-    root.render(<App />);
+    root.render(React.createElement(App, null));
   } catch (error) {
     console.error("React safe mounting container failure:", error);
   }

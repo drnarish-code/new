@@ -9,26 +9,32 @@ export default defineConfig({
       enforce: 'post',
       transformIndexHtml(html, ctx) {
         if (!ctx || !ctx.bundle) return html;
-        let newHtml = html;
+        var newHtml = html;
         
-        for (const [fileName, file] of Object.entries(ctx.bundle)) {
-          if (file.type === 'asset' && file.fileName.endsWith('.css')) {
-            const styleTagRegex = new RegExp(`<link[^>]*href="[^"]*${file.fileName}"[^>]*>`);
-            const inlineStyle = `<style>\n${file.source}\n</style>`;
-            // Safely inline using a callback function to prevent special $ character expansion bugs
-            newHtml = newHtml.replace(styleTagRegex, () => inlineStyle);
+        // Find and inline CSS files safely
+        var bundleKeys = Object.keys(ctx.bundle);
+        for (var i = 0; i < bundleKeys.length; i++) {
+          var fileName = bundleKeys[i];
+          var file = ctx.bundle[fileName];
+          if (file.type === 'asset' && file.fileName.indexOf('.css') !== -1) {
+            var styleTagRegex = new RegExp('<link[^>]*href="[^"]*' + file.fileName + '"[^>]*>');
+            var inlineStyle = '<style>\n' + file.source + '\n</style>';
+            newHtml = newHtml.replace(styleTagRegex, function() { return inlineStyle; });
           }
         }
 
-        for (const [fileName, file] of Object.entries(ctx.bundle)) {
-          if (file.type === 'chunk' && fileName.endsWith('.js')) {
-            const scriptTagRegex = new RegExp(`<script[^>]*src="[^"]*${file.fileName}"[^>]*><\\/script>`);
-            const inlineScript = `<script>\n${file.code}\n</script>`;
-            // Safely inline using a callback function to bypass regex replacement syntax parsing
-            newHtml = newHtml.replace(scriptTagRegex, () => inlineScript);
+        // Find and inline JS chunk files safely
+        for (var j = 0; j < bundleKeys.length; j++) {
+          var chunkName = bundleKeys[j];
+          var chunkFile = ctx.bundle[chunkName];
+          if (chunkFile.type === 'chunk' && chunkFile.fileName.indexOf('.js') !== -1) {
+            var scriptTagRegex = new RegExp('<script[^>]*src="[^"]*' + chunkFile.fileName + '"[^>]*></script>');
+            var inlineScript = '<script>\n' + chunkFile.code + '\n</script>';
+            newHtml = newHtml.replace(scriptTagRegex, function() { return inlineScript; });
           }
         }
 
+        // Clean out ES modules syntax tags so old TVs can execute code
         newHtml = newHtml.replace(/type="module" crossorigin/g, '');
         newHtml = newHtml.replace(/type="module"/g, '');
         newHtml = newHtml.replace(/crossorigin/g, '');
@@ -39,6 +45,6 @@ export default defineConfig({
     }
   ],
   build: {
-    assetsInlineLimit: 100000000 // Force inline media/SVG assets inside the bundle
+    assetsInlineLimit: 100000000 // Inline small images and icon SVGs directly
   }
 });

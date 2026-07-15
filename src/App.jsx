@@ -93,9 +93,27 @@ function getNested(obj, pathArray) {
 
 function getObjectValues(obj) {
   if (!obj) return [];
-  return Object.keys(obj).map(function (key) {
-    return obj[key];
-  });
+  var keys = Object.keys(obj);
+  var values = [];
+  for (var i = 0; i < keys.length; i++) {
+    values.push(obj[keys[i]]);
+  }
+  return values;
+}
+
+function assignObjects() {
+  var to = {};
+  for (var i = 0; i < arguments.length; i++) {
+    var nextSource = arguments[i];
+    if (nextSource !== undefined && nextSource !== null) {
+      var keys = Object.keys(nextSource);
+      for (var j = 0; j < keys.length; j++) {
+        var nextKey = keys[j];
+        to[nextKey] = nextSource[nextKey];
+      }
+    }
+  }
+  return to;
 }
 
 function getQueryParam(name) {
@@ -433,6 +451,7 @@ const OutputScreen = ({
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [previousQueues, setPreviousQueues] = useState(null);
   const [recentCalls, setRecentCalls] = useState([]);
+  const [copiedLocalLink, setCopiedLocalLink] = useState(false);
 
   const audioCtxRef = useRef(null);
   const [highlightedRoom, setHighlightedRoom] = useState(null);
@@ -506,11 +525,11 @@ const OutputScreen = ({
     await playChime();
 
     const malayDigits = convertNumberToMalayDigits(number);
-    const textPrompt = `Sebutkan dengan nada yang lembut, tenang dan jelas dalam Bahasa Melayu: Nombor ${malayDigits}, sila ke ${room}.`;
+    const textPrompt = "Sebutkan dengan nada yang lembut, tenang dan jelas dalam Bahasa Melayu: Nombor " + malayDigits + ", sila ke " + room + ".";
 
     try {
       const apiKey = "";
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+      const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=" + apiKey;
 
       const payload = {
         contents: [{ parts: [{ text: textPrompt }] }],
@@ -557,12 +576,19 @@ const OutputScreen = ({
     if (!window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
-      const textToSpeak = `Nombor ${malayDigits}, sila ke ${room}`;
+      const textToSpeak = "Nombor " + malayDigits + ", sila ke " + room;
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = 'ms-MY';
 
       const voices = window.speechSynthesis.getVoices();
-      const malayVoice = voices.find(v => (v.lang.startsWith('ms') || v.lang.startsWith('id')));
+      var malayVoice = null;
+      for (var vIdx = 0; vIdx < voices.length; vIdx++) {
+        var v = voices[vIdx];
+        if (v.lang.indexOf('ms') === 0 || v.lang.indexOf('id') === 0) {
+          malayVoice = v;
+          break;
+        }
+      }
       if (malayVoice) utterance.voice = malayVoice;
 
       utterance.rate = 0.85;
@@ -646,8 +672,13 @@ const OutputScreen = ({
       setTimeout(() => setHighlightedRoom(null), 1500);
 
       setRecentCalls(prev => {
-        const filteredList = prev.filter(call => call.room !== roomChanged);
-        return [{ room: roomChanged, number: newNumber }, ...filteredList].slice(0, 4);
+        const filteredList = [];
+        for (var idx = 0; idx < prev.length; idx++) {
+          if (prev[idx].room !== roomChanged) {
+            filteredList.push(prev[idx]);
+          }
+        }
+        return [{ room: roomChanged, number: newNumber }].concat(filteredList).slice(0, 4);
       });
     }
     setPreviousQueues(JSON.parse(JSON.stringify(currentData)));
@@ -672,18 +703,19 @@ const OutputScreen = ({
   useEffect(() => {
     if (!setupDone) return;
 
-    Object.keys(videoRefs.current).forEach(key => {
-      const vid = videoRefs.current[key];
+    var videoUrls = Object.keys(videoRefs.current);
+    for (var i = 0; i < videoUrls.length; i++) {
+      var vid = videoRefs.current[videoUrls[i]];
       if (vid) {
         try {
           vid.pause();
           vid.currentTime = 0;
         } catch (e) { }
       }
-    });
+    }
 
     if (activeMedia && activeMedia.type === 'video') {
-      const activeVideo = videoRefs.current[`${activeMedia.url}-${currentMediaIndex}`];
+      const activeVideo = videoRefs.current[activeMedia.url + "-" + currentMediaIndex];
       if (activeVideo) {
         activeVideo.play().catch((err) => {
           console.warn("Autoplay was prevented.", err);
@@ -707,6 +739,25 @@ const OutputScreen = ({
     }
 
     setSetupDone(true);
+  };
+
+  const generateLocalBypassLink = () => {
+    if (!selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return '';
+    const base = window.location.origin + window.location.pathname;
+    return base + "?mode=tv&state=" + encodeURIComponent(selectedState) + "&district=" + encodeURIComponent(selectedDistrict) + "&clinic=" + encodeURIComponent(selectedClinic) + "&dept=" + encodeURIComponent(selectedDept);
+  };
+
+  const copyLocalBypassLink = () => {
+    const link = generateLocalBypassLink();
+    if (!link) return;
+    var dummy = document.createElement('textarea');
+    document.body.appendChild(dummy);
+    dummy.value = link;
+    dummy.select();
+    document.execCommand('copy');
+    document.body.removeChild(dummy);
+    setCopiedLocalLink(true);
+    setTimeout(() => setCopiedLocalLink(false), 2000);
   };
 
   if (!setupDone) {
@@ -734,7 +785,7 @@ const OutputScreen = ({
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 text-slate-800">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
-          <h2 className="text-2xl font-bold mb-2 text-center text-slate-900">Konfigurasi TV Display</h2>
+          <h2 className="text-2xl font-bold mb-2 text-center text-slate-900 font-sans">Konfigurasi TV Display</h2>
           <p className="text-xs text-slate-500 text-center uppercase tracking-wider mb-6">
             {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
           </p>
@@ -806,6 +857,19 @@ const OutputScreen = ({
               </select>
             </div>
 
+            {selectedState && selectedDistrict && selectedClinic && selectedDept && (
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl flex flex-col items-center gap-2 text-center">
+                <p className="text-xs text-blue-700 font-semibold">Salin pautan pintas ini untuk TV (Tanpa Log Masuk):</p>
+                <button
+                  onClick={copyLocalBypassLink}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-all"
+                >
+                  {copiedLocalLink ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copiedLocalLink ? "Disalin!" : "Salin Pautan Pintas TV"}</span>
+                </button>
+              </div>
+            )}
+
             <div className="pt-4 flex space-x-3">
               <button
                 onClick={() => { setSetupDone(false); setCurrentView('login'); }}
@@ -858,18 +922,18 @@ const OutputScreen = ({
           {mediaList.map((media, index) => (
             media.type === 'video' ? (
               <video
-                key={`${media.url}-${index}`}
+                key={media.url + "-" + index}
                 src={media.url}
                 muted
                 playsInline
                 onEnded={() => setCurrentMediaIndex(prev => (prev + 1) % mediaList.length)}
-                ref={el => { videoRefs.current[`${media.url}-${index}`] = el; }}
+                ref={el => { videoRefs.current[media.url + "-" + index] = el; }}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                   }`}
               />
             ) : (
               <img
-                key={`${media.url}-${index}`}
+                key={media.url + "-" + index}
                 src={media.url}
                 alt="Gallery"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
@@ -1335,7 +1399,7 @@ export default function App() {
   const generateBypassLink = () => {
     if (!genState || !genDistrict || !genClinic || !genDept) return '';
     const base = window.location.origin + window.location.pathname;
-    return `${base}?mode=tv&state=${encodeURIComponent(genState)}&district=${encodeURIComponent(genDistrict)}&clinic=${encodeURIComponent(genClinic)}&dept=${encodeURIComponent(genDept)}`;
+    return base + "?mode=tv&state=" + encodeURIComponent(genState) + "&district=" + encodeURIComponent(genDistrict) + "&clinic=" + encodeURIComponent(genClinic) + "&dept=" + encodeURIComponent(genDept);
   };
 
   const copyBypassLinkToClipboard = () => {
@@ -1432,7 +1496,7 @@ export default function App() {
           </div>
 
           {!isRejected && (
-            <div className="bg-blue-50 border border-blue-100 text-blue-800 text-xs py-3 px-4 rounded-xl font-bold">
+            <div className="bg-blue-50 border border-blue-100 text-blue-800 text-xs py-3 px-4 rounded-xl font-bold font-sans">
               Tip: Maklumkan kepada Dr. Narish untuk mengesahkan akaun anda sekarang!
             </div>
           )}
@@ -1535,7 +1599,6 @@ export default function App() {
             </button>
           </div>
         </div>
-        <Modal {...modalConfig} />
       </div>
     );
   }
@@ -1672,17 +1735,16 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
-                <h2 className="text-xl font-bold">2. Pengurusan Struktur Regional (Klinik)</h2>
+                <h2 className="text-xl font-bold font-sans">2. Pengurusan Struktur Regional (Klinik)</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400 font-sans">
                     <span>Negeri</span>
                     <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">{Object.keys(hierarchy).length}</span>
                   </h3>
@@ -1727,7 +1789,7 @@ export default function App() {
                 </div>
 
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400 font-sans">
                     <span>Daerah</span>
                     {adminSelectedState && (
                       <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold font-semibold">
@@ -1782,7 +1844,7 @@ export default function App() {
                 </div>
 
                 <div className="border rounded-2xl p-4 bg-slate-50 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
+                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400 font-sans">
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
                       <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold font-semibold">
@@ -1812,7 +1874,7 @@ export default function App() {
                             key={clinic}
                             className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800 font-semibold text-sm"
                           >
-                            <span className="font-semibold text-slate-800 text-sm">{clinic}</span>
+                            <span className="font-semibold text-slate-800 text-sm font-sans">{clinic}</span>
                             <button
                               onClick={() => removeClinic(clinic)}
                               className="text-slate-400 hover:text-red-500"
@@ -1838,7 +1900,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Settings className="h-6 w-6 text-orange-600 mr-2" />
-                  <h2 className="text-lg font-bold text-slate-800">3. Jabatan / Zon (Zoning)</h2>
+                  <h2 className="text-lg font-bold text-slate-800 font-sans">3. Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
                   <input
@@ -1869,7 +1931,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Monitor className="h-6 w-6 text-emerald-600 mr-2" />
-                  <h2 className="text-lg font-bold text-slate-800">4. TV Media Playlist</h2>
+                  <h2 className="text-lg font-bold text-slate-800 font-sans">4. TV Media Playlist</h2>
                 </div>
                 <div className="flex space-x-2">
                   <select
@@ -1909,13 +1971,12 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center">
                 <LinkIcon className="h-6 w-6 text-blue-600 mr-2" />
-                <h2 className="text-xl font-bold text-slate-800">5. Jana Pautan Pintas TV (Bypass Google Auth)</h2>
+                <h2 className="text-xl font-bold text-slate-800 font-sans">5. Jana Pautan Pintas TV (Bypass Google Auth)</h2>
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 leading-relaxed">
                 Gunakan pembina pautan ini untuk menjana URL khas bagi TV anda. Pautan ini membolehkan TV anda memaparkan skrin panggilan secara langsung **tanpa perlu log masuk dengan Google**.
               </p>
 
@@ -1925,7 +1986,7 @@ export default function App() {
                   <select
                     id="gen-state"
                     name="genState"
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300"
                     value={genState}
                     onChange={(e) => {
                       setGenState(e.target.value);
@@ -1944,7 +2005,7 @@ export default function App() {
                     id="gen-district"
                     name="genDistrict"
                     disabled={!genState}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
                     value={genDistrict}
                     onChange={(e) => {
                       setGenDistrict(e.target.value);
@@ -1962,7 +2023,7 @@ export default function App() {
                     id="gen-clinic"
                     name="genClinic"
                     disabled={!genDistrict}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
                     value={genClinic}
                     onChange={(e) => setGenClinic(e.target.value)}
                   >
@@ -1977,7 +2038,7 @@ export default function App() {
                     id="gen-dept"
                     name="genDept"
                     disabled={!genClinic}
-                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold border-slate-300 disabled:bg-slate-100 disabled:text-slate-450"
                     value={genDept}
                     onChange={(e) => setGenDept(e.target.value)}
                   >
@@ -1988,7 +2049,7 @@ export default function App() {
               </div>
 
               {genState && genDistrict && genClinic && genDept && (
-                <div className="p-4 bg-slate-50 border rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="p-4 bg-slate-50 border rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="overflow-hidden w-full">
                     <p className="text-xs font-bold text-slate-400 uppercase">Pautan Dijana:</p>
                     <p className="text-xs text-blue-600 font-mono truncate select-all mt-1 bg-white p-2 border rounded-lg">{generateBypassLink()}</p>
@@ -2053,5 +2114,3 @@ export default function App() {
     </>
   );
 }
-```
-eof
