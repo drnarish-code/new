@@ -3,10 +3,30 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
+// Safely inject the Tailwind CSS Engine at runtime to fix layout styling
+if (typeof window !== 'undefined' && !document.getElementById('tailwind-cdn')) {
+  var tailwindScript = document.createElement('script');
+  tailwindScript.id = 'tailwind-cdn';
+  tailwindScript.src = 'https://cdn.tailwindcss.com';
+
+  // Configure Tailwind to scan dynamically loaded elements
+  tailwindScript.onload = function () {
+    if (window.tailwind) {
+      window.tailwind.config = {
+        theme: {
+          extend: {}
+        }
+      };
+    }
+  };
+
+  document.head.appendChild(tailwindScript);
+}
+
 function mountApp() {
   var rootElement = document.getElementById('root');
 
-  // If DOM parser hasn't loaded container, dynamically generate it to avoid crash
+  // If the DOM hasn't fully registered the root element yet, generate it on-the-fly to prevent React Error #299
   if (!rootElement) {
     rootElement = document.createElement('div');
     rootElement.id = 'root';
@@ -17,7 +37,7 @@ function mountApp() {
     var root = ReactDOM.createRoot(rootElement);
     root.render(React.createElement(App, null));
   } catch (error) {
-    console.error("React safe mounting container failure:", error);
+    console.error("React mounting pipeline failure:", error);
   }
 }
 
