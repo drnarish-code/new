@@ -11,7 +11,7 @@ import {
   Play,
   Volume2,
   Film,
-  ImageIcon as ImageIconIcon,
+  Image as ImageIcon,
   MapPin,
   Map,
   ShieldAlert,
@@ -42,12 +42,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Prevent modern chromium context channels from leaking or throwing in older Sraf environments
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', function (event) {
-    if (event.reason && (
-      event.reason.message?.includes('message channel closed') ||
-      event.reason.message?.includes('A listener indicated an asynchronous')
-    )) {
+    if (event.reason && event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) {
       event.preventDefault();
     }
   });
@@ -76,6 +74,7 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
 
+// Helper to deeply access nested objects without ES2020 Optional Chaining (?.)
 function getNested(obj, pathArray) {
   var current = obj;
   if (!current) return undefined;
@@ -86,6 +85,14 @@ function getNested(obj, pathArray) {
     current = current[pathArray[i]];
   }
   return current;
+}
+
+// Helper to simulate Object.values() for engines below Chrome 54 (Sraf Smart TVs)
+function getObjectValues(obj) {
+  if (!obj) return [];
+  return Object.keys(obj).map(function (key) {
+    return obj[key];
+  });
 }
 
 function base64ToArrayBuffer(base64) {
@@ -586,7 +593,7 @@ const OutputScreen = ({
 
     if (!previousQueues) {
       setPreviousQueues(JSON.parse(JSON.stringify(currentData)));
-      const initial = Object.entries(currentData)
+      const initial = Object.keys(currentData)
         .map(([room, val]) => ({ room, number: getNum(val), timestamp: getTs(val) }))
         .filter(({ number }) => number !== "0000" && number !== "----")
         .slice(0, 4);
@@ -1476,12 +1483,12 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(!userPermissions || Object.values(userPermissions).length === 0) ? (
+                    {(!userPermissions || getObjectValues(userPermissions).length === 0) ? (
                       <tr>
                         <td colSpan="4" className="p-8 text-center text-slate-400 font-medium">Tiada pendaftaran kakitangan dikesan.</td>
                       </tr>
                     ) : (
-                      Object.values(userPermissions).map((u) => {
+                      getObjectValues(userPermissions).map((u) => {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
@@ -1806,7 +1813,7 @@ export default function App() {
                 {mediaList.map((media, idx) => (
                   <div key={idx} className="p-4 border rounded-xl flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors">
                     <div className="flex items-center space-x-3 overflow-hidden">
-                      {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIconIcon className="h-5 w-5 text-slate-500 shrink-0" />}
+                      {media.type === 'video' ? <Film className="h-5 w-5 text-slate-500 shrink-0" /> : <ImageIcon className="h-5 w-5 text-slate-500 shrink-0" />}
                       <span className="font-medium text-slate-700 truncate text-sm">{media.url}</span>
                     </div>
                     <button onClick={() => removeMedia(idx)} className="text-slate-400 hover:text-red-500 transition-colors ml-4 shrink-0">
