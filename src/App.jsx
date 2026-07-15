@@ -43,7 +43,7 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', function (event) {
     if (event.reason && (
       event.reason.message?.includes('message channel closed') ||
       event.reason.message?.includes('A listener indicated an asynchronous')
@@ -76,6 +76,18 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
 
+function getNested(obj, pathArray) {
+  var current = obj;
+  if (!current) return undefined;
+  for (var i = 0; i < pathArray.length; i++) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+    current = current[pathArray[i]];
+  }
+  return current;
+}
+
 function base64ToArrayBuffer(base64) {
   const binaryString = window.atob(base64);
   const len = binaryString.length;
@@ -101,12 +113,12 @@ function pcmToWav(pcm16Data, sampleRate) {
   writeString(view, 8, 'WAVE');
   writeString(view, 12, 'fmt ');
   view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
+  view.setUint16(20, 1, true); // Raw PCM
+  view.setUint16(22, 1, true); // Mono Channel
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // 16 bit
   writeString(view, 36, 'data');
   view.setUint32(40, pcm16Data.length * 2, true);
 
@@ -163,10 +175,13 @@ const InputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict && hierarchy[selectedState] && hierarchy[selectedState][selectedDistrict])
+    ? (hierarchy[selectedState][selectedDistrict] || [])
+    : [];
 
-  // Determine if there is currently an active number called to this specific room
-  const roomData = queues?.[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept]?.[localRoom];
+  // Determine active number via ES5 safe paths
+  const path = [selectedState, selectedDistrict, selectedClinic, selectedDept, localRoom];
+  const roomData = getNested(queues, path);
   const activeNumber = roomData && typeof roomData === 'object' ? roomData.number : (roomData || '');
   const hasActiveNumber = activeNumber && activeNumber !== '----' && activeNumber !== '0000';
 
@@ -412,7 +427,9 @@ const OutputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict && hierarchy[selectedState] && hierarchy[selectedState][selectedDistrict])
+    ? (hierarchy[selectedState][selectedDistrict] || [])
+    : [];
 
   const digitToMalay = (char) => {
     const dict = {
@@ -501,9 +518,9 @@ const OutputScreen = ({
       if (!response.ok) throw new Error("Gemini TTS API returned failure code.");
 
       const result = await response.json();
-      const audioPart = result?.candidates?.[0]?.content?.parts?.[0];
-      const audioData = audioPart?.inlineData?.data;
-      const mimeType = audioPart?.inlineData?.mimeType || "audio/L16;rate=24000";
+      const audioPart = getNested(result, ['candidates', 0, 'content', 'parts', 0]);
+      const audioData = getNested(audioPart, ['inlineData', 'data']);
+      const mimeType = getNested(audioPart, ['inlineData', 'mimeType']) || "audio/L16;rate=24000";
 
       if (audioData) {
         const rateMatch = mimeType.match(/rate=(\d+)/);
@@ -553,7 +570,7 @@ const OutputScreen = ({
   useEffect(() => {
     if (!setupDone || !selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return;
 
-    const currentData = queues[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept];
+    const currentData = getNested(queues, [selectedState, selectedDistrict, selectedClinic, selectedDept]);
     if (!currentData) return;
 
     // Backward-compatible safe structure readers
@@ -1244,7 +1261,7 @@ export default function App() {
   const myPermission = userPermissions ? userPermissions[user.uid] : null;
 
   if (!isSuperadmin && (!myPermission || myPermission.status !== 'approved')) {
-    const isRejected = myPermission?.status === 'rejected';
+    const isRejected = myPermission && myPermission.status === 'rejected';
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
@@ -1391,7 +1408,6 @@ export default function App() {
 
   return (
     <>
-      { }
       {currentView === 'admin' && (
         <div className="min-h-screen bg-slate-50 flex flex-col">
           <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
@@ -1432,7 +1448,9 @@ export default function App() {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
+                        const districtClinics = (userState && userDistrict && hierarchy[userState] && hierarchy[userState][userDistrict])
+                          ? (hierarchy[userState][userDistrict] || [])
+                          : [];
 
                         return (
                           <tr key={u.uid} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
@@ -1660,7 +1678,7 @@ export default function App() {
                       </div>
 
                       <div className="flex-1 overflow-y-auto space-y-2">
-                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).map(clinic => (
+                        {(hierarchy[adminSelectedState][adminSelectedDistrict] || []).map(clinic => (
                           <div
                             key={clinic}
                             className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all"
@@ -1719,7 +1737,6 @@ export default function App() {
               </div>
             </section>
 
-            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
