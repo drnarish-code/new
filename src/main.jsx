@@ -5,7 +5,7 @@ import './index.css';
 
 // Safe bootstrap function to protect older TV rendering loops
 function mountApp() {
-  let rootElement = document.getElementById('root');
+  var rootElement = document.getElementById('root');
 
   if (!rootElement) {
     // If DOM parsing hasn't created the root container yet, create it on the fly
@@ -15,7 +15,7 @@ function mountApp() {
   }
 
   try {
-    const root = ReactDOM.createRoot(rootElement);
+    var root = ReactDOM.createRoot(rootElement);
     root.render(<App />);
   } catch (error) {
     console.error("React safe mounting container failure:", error);

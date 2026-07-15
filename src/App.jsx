@@ -17,7 +17,10 @@ import {
   ShieldAlert,
   Clock,
   UserCheck,
-  RotateCcw
+  RotateCcw,
+  Link as LinkIcon,
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -93,6 +96,12 @@ function getObjectValues(obj) {
   return Object.keys(obj).map(function (key) {
     return obj[key];
   });
+}
+
+function getQueryParam(name) {
+  if (typeof window === 'undefined') return '';
+  var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+  return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
 }
 
 function base64ToArrayBuffer(base64) {
@@ -701,6 +710,27 @@ const OutputScreen = ({
   };
 
   if (!setupDone) {
+    const isTvBypassMode = getQueryParam('mode') === 'tv';
+
+    if (isTvBypassMode) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center cursor-pointer" onClick={handleStartTV}>
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
+            <div className="mx-auto h-20 w-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center border border-blue-500/30">
+              <Volume2 className="h-10 w-10 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-white tracking-wide uppercase">Aktifkan Audio TV</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Sila klik di mana-mana atau tekan butang 'OK' pada remote control anda untuk memulakan paparan audio TV.
+            </p>
+            <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-900/50 uppercase tracking-wider">
+              Mula Skrin TV
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 text-slate-800">
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
@@ -716,7 +746,7 @@ const OutputScreen = ({
                 id="output-state"
                 name="outputState"
                 disabled={!isSuperadmin}
-                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50"
+                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50 font-semibold"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -735,7 +765,7 @@ const OutputScreen = ({
                 id="output-district"
                 name="outputDistrict"
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50"
+                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50 font-semibold"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -753,7 +783,7 @@ const OutputScreen = ({
                 id="output-clinic"
                 name="outputClinic"
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50"
+                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 disabled:opacity-50 font-semibold"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -767,7 +797,7 @@ const OutputScreen = ({
               <select
                 id="output-dept"
                 name="outputDept"
-                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800"
+                className="w-full p-4 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -786,7 +816,7 @@ const OutputScreen = ({
               <button
                 disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-50 flex items-center justify-center"
+                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl disabled:opacity-50 hover:bg-emerald-700 flex items-center justify-center"
               >
                 <Play className="h-5 w-5 mr-2" /> Mula TV
               </button>
@@ -918,6 +948,13 @@ export default function App() {
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
 
+  // Bypass Generator States
+  const [genState, setGenState] = useState('');
+  const [genDistrict, setGenDistrict] = useState('');
+  const [genClinic, setGenClinic] = useState('');
+  const [genDept, setGenDept] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -926,13 +963,19 @@ export default function App() {
 
   const getDocRef = () => doc(db, 'qms', 'state');
 
-  useEffect(() => {
-    const cdnId = 'dynamic-tailwind-framework-cdn';
-    if (!document.getElementById(cdnId)) {
-      const scriptNode = document.createElement('script');
-      scriptNode.id = cdnId;
-      scriptNode.src = 'https://cdn.tailwindcss.com';
-      document.head.appendChild(scriptNode);
+  useEffect(function () {
+    var mode = getQueryParam('mode');
+    var bState = getQueryParam('state');
+    var bDistrict = getQueryParam('district');
+    var bClinic = getQueryParam('clinic');
+    var bDept = getQueryParam('dept');
+
+    if (mode === 'tv' && bState && bDistrict && bClinic && bDept) {
+      setSelectedState(bState);
+      setSelectedDistrict(bDistrict);
+      setSelectedClinic(bClinic);
+      setSelectedDept(bDept);
+      setCurrentView('output');
     }
   }, []);
 
@@ -979,7 +1022,11 @@ export default function App() {
   }, [user, userPermissions]);
 
   useEffect(() => {
-    if (!user) return;
+    var bState = getQueryParam('state');
+    var isTvBypass = getQueryParam('mode') === 'tv' && bState;
+
+    // Allow configuration sync if logged in OR running TV bypass link
+    if (!user && !isTvBypass) return;
 
     const qmsDocRef = getDocRef();
     const configRef = doc(db, 'qms', 'config');
@@ -999,16 +1046,19 @@ export default function App() {
       console.error("Config load error:", error);
     });
 
-    const unsubUsers = onSnapshot(usersRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setUserPermissions(docSnap.data());
-      } else {
+    var unsubUsers = () => { };
+    if (user) {
+      unsubUsers = onSnapshot(usersRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserPermissions(docSnap.data());
+        } else {
+          setUserPermissions({});
+        }
+      }, (error) => {
+        console.error("Users sync error:", error);
         setUserPermissions({});
-      }
-    }, (error) => {
-      console.error("Users sync error:", error);
-      setUserPermissions({});
-    });
+      });
+    }
 
     const unsubQueues = onSnapshot(
       qmsDocRef,
@@ -1282,6 +1332,27 @@ export default function App() {
     });
   };
 
+  const generateBypassLink = () => {
+    if (!genState || !genDistrict || !genClinic || !genDept) return '';
+    const base = window.location.origin + window.location.pathname;
+    return `${base}?mode=tv&state=${encodeURIComponent(genState)}&district=${encodeURIComponent(genDistrict)}&clinic=${encodeURIComponent(genClinic)}&dept=${encodeURIComponent(genDept)}`;
+  };
+
+  const copyBypassLinkToClipboard = () => {
+    const link = generateBypassLink();
+    if (!link) return;
+
+    var dummy = document.createElement('textarea');
+    document.body.appendChild(dummy);
+    dummy.value = link;
+    dummy.select();
+    document.execCommand('copy');
+    document.body.removeChild(dummy);
+
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -1290,7 +1361,7 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  if (!user && getQueryParam('mode') !== 'tv') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center animate-in fade-in zoom-in duration-300">
@@ -1320,10 +1391,10 @@ export default function App() {
     );
   }
 
-  const isSuperadmin = user.email === 'dr.narish@gmail.com';
+  const isSuperadmin = user ? user.email === 'dr.narish@gmail.com' : false;
   const myPermission = userPermissions ? userPermissions[user.uid] : null;
 
-  if (!isSuperadmin && (!myPermission || myPermission.status !== 'approved')) {
+  if (user && !isSuperadmin && (!myPermission || myPermission.status !== 'approved')) {
     const isRejected = myPermission && myPermission.status === 'rejected';
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -1352,7 +1423,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center space-x-3 text-left">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center space-x-3 text-left text-slate-800">
             <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border shadow-sm" />
             <div className="overflow-hidden">
               <p className="font-bold text-slate-800 truncate">{user.displayName}</p>
@@ -1377,7 +1448,7 @@ export default function App() {
     );
   }
 
-  if (currentView === 'login') {
+  if (currentView === 'login' && user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-200 text-slate-800">
@@ -1601,6 +1672,7 @@ export default function App() {
               </div>
             </section>
 
+            { }
             <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-6 w-6 text-purple-600 mr-2" />
@@ -1623,7 +1695,7 @@ export default function App() {
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
                       onChange={(e) => setNewHierarchyState(e.target.value)}
-                      className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-purple-500"
+                      className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-purple-500 font-semibold"
                     />
                     <button onClick={addState} className="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                   </div>
@@ -1658,7 +1730,7 @@ export default function App() {
                   <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
                     <span>Daerah</span>
                     {adminSelectedState && (
-                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold font-semibold">
                         {Object.keys(hierarchy[adminSelectedState] || {}).length}
                       </span>
                     )}
@@ -1674,7 +1746,7 @@ export default function App() {
                           placeholder={`Daerah Baru di ${adminSelectedState}...`}
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
-                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
                         />
                         <button onClick={addDistrict} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1713,7 +1785,7 @@ export default function App() {
                   <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-sm uppercase tracking-wider text-slate-400">
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
-                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold font-semibold">
                         {getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]).length}
                       </span>
                     )}
@@ -1729,7 +1801,7 @@ export default function App() {
                           placeholder={`Klinik di ${adminSelectedDistrict}...`}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
-                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 flex-1 outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
                         />
                         <button onClick={addClinic} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm font-bold">Tambah</button>
                       </div>
@@ -1738,7 +1810,7 @@ export default function App() {
                         {(getNested(hierarchy, [adminSelectedState, adminSelectedDistrict]) || []).map(clinic => (
                           <div
                             key={clinic}
-                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800"
+                            className="p-3 border rounded-xl flex justify-between items-center bg-white hover:bg-slate-100 transition-all text-slate-800 font-semibold text-sm"
                           >
                             <span className="font-semibold text-slate-800 text-sm">{clinic}</span>
                             <button
@@ -1776,7 +1848,7 @@ export default function App() {
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-40 md:w-56 focus:ring-2 focus:ring-orange-500 outline-none font-semibold"
                   />
                   <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah</button>
                 </div>
@@ -1805,7 +1877,7 @@ export default function App() {
                     name="adminMediaType"
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 outline-none font-semibold"
                   >
                     <option value="image">Image</option>
                     <option value="video">Video</option>
@@ -1817,7 +1889,7 @@ export default function App() {
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
                     onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="border border-slate-300 p-2 rounded-lg text-sm bg-white text-slate-800 w-48 md:w-64 focus:ring-2 focus:ring-emerald-500 outline-none font-semibold"
                   />
                   <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Tambah URL</button>
                 </div>
@@ -1835,6 +1907,110 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            </section>
+
+            { }
+            <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
+              <div className="flex items-center">
+                <LinkIcon className="h-6 w-6 text-blue-600 mr-2" />
+                <h2 className="text-xl font-bold text-slate-800">5. Jana Pautan Pintas TV (Bypass Google Auth)</h2>
+              </div>
+              <p className="text-sm text-slate-500">
+                Gunakan pembina pautan ini untuk menjana URL khas bagi TV anda. Pautan ini membolehkan TV anda memaparkan skrin panggilan secara langsung **tanpa perlu log masuk dengan Google**.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label htmlFor="gen-state" className="block text-xs font-bold text-slate-500 uppercase mb-1">Negeri</label>
+                  <select
+                    id="gen-state"
+                    name="genState"
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold"
+                    value={genState}
+                    onChange={(e) => {
+                      setGenState(e.target.value);
+                      setGenDistrict('');
+                      setGenClinic('');
+                    }}
+                  >
+                    <option value="">Pilih...</option>
+                    {Object.keys(hierarchy).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="gen-district" className="block text-xs font-bold text-slate-500 uppercase mb-1">Daerah</label>
+                  <select
+                    id="gen-district"
+                    name="genDistrict"
+                    disabled={!genState}
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    value={genDistrict}
+                    onChange={(e) => {
+                      setGenDistrict(e.target.value);
+                      setGenClinic('');
+                    }}
+                  >
+                    <option value="">Pilih...</option>
+                    {(genState ? Object.keys(hierarchy[genState] || {}) : []).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="gen-clinic" className="block text-xs font-bold text-slate-500 uppercase mb-1">Klinik Kesihatan</label>
+                  <select
+                    id="gen-clinic"
+                    name="genClinic"
+                    disabled={!genDistrict}
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    value={genClinic}
+                    onChange={(e) => setGenClinic(e.target.value)}
+                  >
+                    <option value="">Pilih...</option>
+                    {(genState && genDistrict ? (hierarchy[genState][genDistrict] || []) : []).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="gen-dept" className="block text-xs font-bold text-slate-500 uppercase mb-1">Jabatan / Zon</label>
+                  <select
+                    id="gen-dept"
+                    name="genDept"
+                    disabled={!genClinic}
+                    className="w-full p-3 border rounded-xl bg-white text-slate-800 font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                    value={genDept}
+                    onChange={(e) => setGenDept(e.target.value)}
+                  >
+                    <option value="">Pilih...</option>
+                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {genState && genDistrict && genClinic && genDept && (
+                <div className="p-4 bg-slate-50 border rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="overflow-hidden w-full">
+                    <p className="text-xs font-bold text-slate-400 uppercase">Pautan Dijana:</p>
+                    <p className="text-xs text-blue-600 font-mono truncate select-all mt-1 bg-white p-2 border rounded-lg">{generateBypassLink()}</p>
+                  </div>
+                  <button
+                    onClick={copyBypassLinkToClipboard}
+                    className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shrink-0 flex items-center justify-center space-x-2 transition-all shadow-md active:scale-95"
+                  >
+                    {copiedLink ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <span>Berjaya Disalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Salin Pautan TV</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </section>
           </main>
         </div>
@@ -1877,3 +2053,5 @@ export default function App() {
     </>
   );
 }
+```
+eof
