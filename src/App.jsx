@@ -32,9 +32,11 @@ import {
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
+// Detect current domain to prevent cross-origin third-party cookie blocking in Android WebView
+const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
 const firebaseConfig = {
   apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
-  authDomain: "pkd-qms.firebaseapp.com",
+  authDomain: currentHost.indexOf('vercel.app') !== -1 ? currentHost : "pkd-qms.firebaseapp.com",
   databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "pkd-qms",
   storageBucket: "pkd-qms.firebasestorage.app",
@@ -48,11 +50,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Prevent standard iframe / listener warning notifications on Web console
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     if (event.reason && (
-      event.reason.message?.includes('message channel closed') ||
-      event.reason.message?.includes('A listener indicated an asynchronous')
+      (event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) ||
+      (event.reason.message && event.reason.message.indexOf('A listener indicated an asynchronous') !== -1)
     )) {
       event.preventDefault();
     }
@@ -149,7 +152,7 @@ function pcmToWav(pcm16Data, sampleRate) {
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-slate-955/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900 rounded-3xl p-8 w-full max-w-md border border-slate-800 shadow-2xl">
         <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
         <p className="text-slate-300 mb-6 text-sm">{message}</p>
@@ -191,9 +194,22 @@ const InputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
 
-  const roomData = queues?.[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept]?.[localRoom];
+  const getRoomData = () => {
+    if (!queues || !selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return null;
+    const stateObj = queues[selectedState];
+    if (!stateObj) return null;
+    const distObj = stateObj[selectedDistrict];
+    if (!distObj) return null;
+    const clinicObj = distObj[selectedClinic];
+    if (!clinicObj) return null;
+    const deptObj = clinicObj[selectedDept];
+    if (!deptObj) return null;
+    return deptObj[localRoom];
+  };
+
+  const roomData = getRoomData();
   const activeNumber = roomData && typeof roomData === 'object' ? roomData.number : (roomData || '');
   const hasActiveNumber = activeNumber && activeNumber !== '----' && activeNumber !== '0000';
 
@@ -230,7 +246,7 @@ const InputScreen = ({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-slate-955 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -239,7 +255,7 @@ const InputScreen = ({
                 {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
               </p>
             </div>
-            <button onClick={() => setCurrentView('login')} className="p-2 text-slate-400 hover:text-white bg-slate-850 rounded-xl">
+            <button onClick={() => setCurrentView('login')} className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-xl">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
@@ -335,7 +351,7 @@ const InputScreen = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-955 text-white flex flex-col justify-center p-4">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center p-4">
       <div className="w-full max-w-sm mx-auto flex flex-col bg-slate-900 border border-slate-800 rounded-[32px] p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -351,7 +367,7 @@ const InputScreen = ({
           </button>
         </div>
 
-        <div className="bg-slate-955 rounded-2xl p-6 mb-6 flex justify-center items-center border border-slate-800 min-h-[120px]">
+        <div className="bg-slate-950 rounded-2xl p-6 mb-6 flex justify-center items-center border border-slate-800 min-h-[120px]">
           <span className="text-6xl font-mono font-black tracking-wider text-indigo-400">
             {currentInput || '----'}
           </span>
@@ -434,7 +450,7 @@ const OutputScreen = ({
 
   const statesList = Object.keys(hierarchy || {});
   const districtsList = selectedState ? Object.keys(hierarchy[selectedState] || {}) : [];
-  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState]?.[selectedDistrict] || []) : [];
+  const clinicsList = (selectedState && selectedDistrict) ? (hierarchy[selectedState][selectedDistrict] || []) : [];
 
   const digitToMalay = (char) => {
     const dict = {
@@ -499,8 +515,8 @@ const OutputScreen = ({
     const textPrompt = `Sebutkan dengan nada yang lembut, tenang dan jelas dalam Bahasa Melayu: Nombor ${malayDigits}, sila ke ${room}.`;
 
     try {
-      const apiKey = "";
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+      const apiKey = "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok";
+      const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=" + apiKey;
 
       const payload = {
         contents: [{ parts: [{ text: textPrompt }] }],
@@ -523,9 +539,13 @@ const OutputScreen = ({
       if (!response.ok) throw new Error("Gemini TTS API error.");
 
       const result = await response.json();
-      const audioPart = result?.candidates?.[0]?.content?.parts?.[0];
-      const audioData = audioPart?.inlineData?.data;
-      const mimeType = audioPart?.inlineData?.mimeType || "audio/L16;rate=24000";
+      let audioPart = null;
+      if (result && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0]) {
+        audioPart = result.candidates[0].content.parts[0];
+      }
+
+      const audioData = audioPart && audioPart.inlineData ? audioPart.inlineData.data : null;
+      const mimeType = audioPart && audioPart.inlineData ? audioPart.inlineData.mimeType : "audio/L16;rate=24000";
 
       if (audioData) {
         const rateMatch = mimeType.match(/rate=(\d+)/);
@@ -552,7 +572,7 @@ const OutputScreen = ({
       utterance.lang = 'ms-MY';
 
       const voices = window.speechSynthesis.getVoices();
-      const malayVoice = voices.find(v => (v.lang.startsWith('ms') || v.lang.startsWith('id')));
+      const malayVoice = voices.find(v => (v.lang.indexOf('ms') === 0 || v.lang.indexOf('id') === 0));
       if (malayVoice) utterance.voice = malayVoice;
 
       utterance.rate = 0.85;
@@ -575,16 +595,19 @@ const OutputScreen = ({
   useEffect(() => {
     if (!setupDone || !selectedState || !selectedDistrict || !selectedClinic || !selectedDept) return;
 
-    const currentData = queues[selectedState]?.[selectedDistrict]?.[selectedClinic]?.[selectedDept];
+    let currentData = null;
+    if (queues && queues[selectedState] && queues[selectedState][selectedDistrict] && queues[selectedState][selectedDistrict][selectedClinic]) {
+      currentData = queues[selectedState][selectedDistrict][selectedClinic][selectedDept];
+    }
     if (!currentData) return;
 
     const getNum = (val) => {
       if (!val) return '';
-      return typeof val === 'object' ? val.number : val;
+      return typeof val === 'object' ? (val.number || '') : val;
     };
     const getTs = (val) => {
       if (!val) return 0;
-      return typeof val === 'object' ? val.timestamp : 0;
+      return typeof val === 'object' ? (val.timestamp || 0) : 0;
     };
 
     if (!previousQueues) {
@@ -660,7 +683,7 @@ const OutputScreen = ({
     });
 
     if (activeMedia && activeMedia.type === 'video') {
-      const activeVideo = videoRefs.current[`${activeMedia.url}-${currentMediaIndex}`];
+      const activeVideo = videoRefs.current[activeMedia.url + "-" + currentMediaIndex];
       if (activeVideo) {
         activeVideo.play().catch((err) => {
           console.warn("Autoplay was prevented.", err);
@@ -681,7 +704,6 @@ const OutputScreen = ({
       silentCheck.volume = 0;
       window.speechSynthesis.speak(silentCheck);
     }
-    // Save chosen department to localstorage to avoid re-asking on TV reboots
     localStorage.setItem('qms_tv_cached_dept', selectedDept);
     setSetupDone(true);
   };
@@ -708,7 +730,7 @@ const OutputScreen = ({
 
   if (!setupDone) {
     return (
-      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 text-white animate-in fade-in zoom-in duration-300">
           <h2 className="text-2xl font-black text-center text-white">Konfigurasi TV Display</h2>
           <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6 font-bold">
@@ -767,7 +789,7 @@ const OutputScreen = ({
                 </div>
               </>
             ) : (
-              <div className="p-4 bg-slate-955 border border-slate-800 rounded-2xl space-y-2">
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
                 <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Lokasi Bertugas Diluluskan:</p>
                 <p className="text-base font-bold text-white leading-tight">{selectedClinic}</p>
                 <p className="text-xs text-slate-400 font-semibold">{selectedDistrict}, {selectedState}</p>
@@ -836,22 +858,22 @@ const OutputScreen = ({
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10">
-        <div className="flex-1 relative bg-slate-955 flex items-center justify-center overflow-hidden">
+        <div className="flex-1 relative bg-slate-950 flex items-center justify-center overflow-hidden">
           {mediaList.map((media, index) => (
             media.type === 'video' ? (
               <video
-                key={`${media.url}-${index}`}
+                key={media.url + "-" + index}
                 src={media.url}
                 muted
                 playsInline
                 onEnded={() => setCurrentMediaIndex(prev => (prev + 1) % mediaList.length)}
-                ref={el => { videoRefs.current[`${media.url}-${index}`] = el; }}
+                ref={el => { videoRefs.current[media.url + "-" + index] = el; }}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                   }`}
               />
             ) : (
               <img
-                key={`${media.url}-${index}`}
+                key={media.url + "-" + index}
                 src={media.url}
                 alt="Gallery"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentMediaIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
@@ -941,7 +963,7 @@ export default function App() {
   useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
-        if (result?.user) {
+        if (result && result.user) {
           setUser(result.user);
         }
       })
@@ -1045,7 +1067,7 @@ export default function App() {
       (docSnap) => {
         setDbStatus('connected');
         if (docSnap.exists()) {
-          setQueues(prev => ({ ...prev, ...docSnap.data() }));
+          setQueues(Object.assign({}, queues, docSnap.data()));
         }
       },
       (error) => {
@@ -1066,9 +1088,9 @@ export default function App() {
       isOpen: true, title, message, type,
       onConfirm: () => {
         if (onConfirm) onConfirm();
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        setModalConfig(Object.assign({}, modalConfig, { isOpen: false }));
       },
-      onCancel: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      onCancel: () => setModalConfig(Object.assign({}, modalConfig, { isOpen: false }))
     });
   };
 
@@ -1103,13 +1125,13 @@ export default function App() {
     if (!user) return showModal("Ralat", "Sila log masuk dahulu.", "info");
 
     const timestamp = Date.now();
-    const updatedQueues = { ...queues };
+    const updatedQueues = Object.assign({}, queues);
     if (!updatedQueues[stateVal]) updatedQueues[stateVal] = {};
     if (!updatedQueues[stateVal][districtVal]) updatedQueues[stateVal][districtVal] = {};
     if (!updatedQueues[stateVal][districtVal][clinicVal]) updatedQueues[stateVal][districtVal][clinicVal] = {};
     if (!updatedQueues[stateVal][districtVal][clinicVal][deptVal]) updatedQueues[stateVal][districtVal][clinicVal][deptVal] = {};
 
-    updatedQueues[stateVal][districtVal][clinicVal][deptVal][roomVal] = { number: newNumber, timestamp };
+    updatedQueues[stateVal][districtVal][clinicVal][deptVal][roomVal] = { number: newNumber, timestamp: timestamp };
     setQueues(updatedQueues);
 
     try {
@@ -1120,7 +1142,7 @@ export default function App() {
               [deptVal]: {
                 [roomVal]: {
                   number: newNumber,
-                  timestamp
+                  timestamp: timestamp
                 }
               }
             }
@@ -1140,7 +1162,7 @@ export default function App() {
       showModal("Info", "Negeri ini sudah wujud.", "info");
       return;
     }
-    const updatedHierarchy = { ...hierarchy, [cleanStateName]: {} };
+    const updatedHierarchy = Object.assign({}, hierarchy, { [cleanStateName]: {} });
     setHierarchy(updatedHierarchy);
     setNewHierarchyState('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1148,7 +1170,7 @@ export default function App() {
 
   const removeState = async (stateToRemove) => {
     showModal('Padam Negeri', `Padam negeri ${stateToRemove} dan semua daerah & klinik di bawahnya?`, 'confirm', async () => {
-      const updatedHierarchy = { ...hierarchy };
+      const updatedHierarchy = Object.assign({}, hierarchy);
       delete updatedHierarchy[stateToRemove];
       setHierarchy(updatedHierarchy);
       if (adminSelectedState === stateToRemove) {
@@ -1167,13 +1189,11 @@ export default function App() {
       showModal("Info", "Daerah ini sudah wujud dalam negeri ini.", "info");
       return;
     }
-    const updatedHierarchy = {
-      ...hierarchy,
-      [adminSelectedState]: {
-        ...stateObj,
+    const updatedHierarchy = Object.assign({}, hierarchy, {
+      [adminSelectedState]: Object.assign({}, stateObj, {
         [cleanDistrictName]: []
-      }
-    };
+      })
+    });
     setHierarchy(updatedHierarchy);
     setNewHierarchyDistrict('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1181,7 +1201,7 @@ export default function App() {
 
   const removeDistrict = async (districtToRemove) => {
     showModal('Padam Daerah', `Padam daerah ${districtToRemove} dan semua klinik di bawahnya?`, 'confirm', async () => {
-      const updatedHierarchy = { ...hierarchy };
+      const updatedHierarchy = Object.assign({}, hierarchy);
       delete updatedHierarchy[adminSelectedState][districtToRemove];
       setHierarchy(updatedHierarchy);
       if (adminSelectedDistrict === districtToRemove) {
@@ -1194,18 +1214,16 @@ export default function App() {
   const addClinic = async () => {
     if (!adminSelectedState || !adminSelectedDistrict || !newClinicName.trim()) return;
     const cleanClinicName = newClinicName.trim();
-    const currentClinics = hierarchy[adminSelectedState]?.[adminSelectedDistrict] || [];
-    if (currentClinics.includes(cleanClinicName)) {
+    const currentClinics = (hierarchy[adminSelectedState] && hierarchy[adminSelectedState][adminSelectedDistrict]) || [];
+    if (currentClinics.indexOf(cleanClinicName) !== -1) {
       showModal("Info", "Klinik ini sudah wujud dalam daerah ini.", "info");
       return;
     }
-    const updatedHierarchy = {
-      ...hierarchy,
-      [adminSelectedState]: {
-        ...hierarchy[adminSelectedState],
-        [adminSelectedDistrict]: [...currentClinics, cleanClinicName]
-      }
-    };
+    const updatedHierarchy = Object.assign({}, hierarchy, {
+      [adminSelectedState]: Object.assign({}, hierarchy[adminSelectedState], {
+        [adminSelectedDistrict]: [].concat(currentClinics, [cleanClinicName])
+      })
+    });
     setHierarchy(updatedHierarchy);
     setNewClinicName('');
     await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
@@ -1213,14 +1231,13 @@ export default function App() {
 
   const removeClinic = async (clinicToRemove) => {
     showModal('Padam Klinik', `Padam klinik ${clinicToRemove}?`, 'confirm', async () => {
-      const updatedClinics = (hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).filter(c => c !== clinicToRemove);
-      const updatedHierarchy = {
-        ...hierarchy,
-        [adminSelectedState]: {
-          ...hierarchy[adminSelectedState],
+      const originalClinics = (hierarchy[adminSelectedState] && hierarchy[adminSelectedState][adminSelectedDistrict]) || [];
+      const updatedClinics = originalClinics.filter(c => c !== clinicToRemove);
+      const updatedHierarchy = Object.assign({}, hierarchy, {
+        [adminSelectedState]: Object.assign({}, hierarchy[adminSelectedState], {
           [adminSelectedDistrict]: updatedClinics
-        }
-      };
+        })
+      });
       setHierarchy(updatedHierarchy);
       await setDoc(doc(db, 'qms', 'config'), { hierarchy: updatedHierarchy }, { merge: true });
     });
@@ -1228,7 +1245,7 @@ export default function App() {
 
   const addDepartment = async () => {
     if (!newDeptName.trim()) return;
-    const updatedDepts = [...departments, newDeptName.trim()];
+    const updatedDepts = [].concat(departments, [newDeptName.trim()]);
     setDepartments(updatedDepts);
     setNewDeptName('');
     await setDoc(doc(db, 'qms', 'config'), { departments: updatedDepts }, { merge: true });
@@ -1244,7 +1261,7 @@ export default function App() {
 
   const addMedia = async () => {
     if (!newMediaUrl.trim()) return;
-    const updatedMedia = [...mediaList, { url: newMediaUrl.trim(), type: newMediaType }];
+    const updatedMedia = [].concat(mediaList, [{ url: newMediaUrl.trim(), type: newMediaType }]);
     setMediaList(updatedMedia);
     setNewMediaUrl('');
     await setDoc(doc(db, 'qms', 'config'), { media: updatedMedia }, { merge: true });
@@ -1260,7 +1277,7 @@ export default function App() {
 
   const updateUserStatus = async (uid, status) => {
     await setDoc(doc(db, 'qms', 'users'), {
-      [uid]: { status }
+      [uid]: { status: status }
     }, { merge: true });
   };
 
@@ -1272,7 +1289,7 @@ export default function App() {
 
   const deleteUserRecord = async (uid) => {
     showModal('Padam Kakitangan', 'Padam rekod pendaftaran kakitangan ini?', 'confirm', async () => {
-      const updatedPermissions = { ...userPermissions };
+      const updatedPermissions = Object.assign({}, userPermissions);
       delete updatedPermissions[uid];
       await setDoc(doc(db, 'qms', 'users'), updatedPermissions);
     });
@@ -1280,7 +1297,7 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-955 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
       </div>
     );
@@ -1290,7 +1307,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center animate-in fade-in zoom-in duration-350">
-          <div className="mx-auto h-20 w-20 bg-indigo-650 rounded-full flex items-center justify-center shadow-xl shadow-indigo-950/50 mb-6">
+          <div className="mx-auto h-20 w-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-xl shadow-indigo-950/50 mb-6">
             <svg className="h-10 w-10 text-white animate-pulse" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
@@ -1300,7 +1317,7 @@ export default function App() {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 py-4 bg-slate-955 border-2 border-slate-850 rounded-2xl hover:bg-slate-850 hover:border-indigo-500 transition-all shadow-sm group"
+            className="w-full flex items-center justify-center space-x-3 py-4 bg-slate-950 border-2 border-slate-850 rounded-2xl hover:bg-slate-850 hover:border-indigo-500 transition-all shadow-sm group"
           >
             <svg className="w-6 h-6 group-hover:scale-105 transition-transform" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -1320,9 +1337,9 @@ export default function App() {
   const myPermission = userPermissions ? userPermissions[user.uid] : null;
 
   if (!isSuperadmin && (!myPermission || myPermission.status !== 'approved')) {
-    const isRejected = myPermission?.status === 'rejected';
+    const isRejected = myPermission && myPermission.status === 'rejected';
     return (
-      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center space-y-6">
           <div className="mx-auto h-20 w-20 rounded-full flex items-center justify-center shadow-lg animate-bounce">
             {isRejected ? (
@@ -1348,7 +1365,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-slate-955 p-4 rounded-2xl border border-slate-800 flex items-center space-x-3 text-left">
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center space-x-3 text-left">
             <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border border-slate-850 shadow-sm" />
             <div className="overflow-hidden">
               <p className="font-bold text-white truncate">{user.displayName}</p>
@@ -1375,7 +1392,7 @@ export default function App() {
 
   if (currentView === 'login') {
     return (
-      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-200">
           <div className="text-center bg-slate-900 p-6 rounded-[32px] shadow-xl border border-slate-800">
             <div className="mx-auto h-16 w-16 mb-4 relative">
@@ -1386,19 +1403,19 @@ export default function App() {
                   <Users className="h-8 w-8 text-white" />
                 </div>
               )}
-              <span className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-slate-900 ${isSuperadmin ? 'bg-purple-500' : 'bg-emerald-500'}`} />
+              <span className={"absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-slate-900 " + (isSuperadmin ? 'bg-purple-500' : 'bg-emerald-500')} />
             </div>
             <h2 className="text-2xl font-extrabold text-white leading-tight">Hai, {user.displayName || 'Kakitangan'}</h2>
             <p className="text-sm font-semibold text-slate-400 mt-1">{user.email}</p>
             {!isSuperadmin && myPermission && (
-              <div className="mt-3 inline-flex items-center space-x-1.5 bg-emerald-950/40 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-900/30">
+              <div className="mt-3 inline-flex items-center space-x-1.5 bg-emerald-955/40 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-900/30">
                 <UserCheck className="h-3.5 w-3.5" />
                 <span>KK: {myPermission.assignedClinic || 'Belum ditetapkan'}</span>
               </div>
             )}
             <button
               onClick={handleLogout}
-              className="block mx-auto mt-5 text-xs font-bold px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-rose-950 hover:text-rose-400 transition-colors"
+              className="block mx-auto mt-5 text-xs font-bold px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-rose-955 hover:text-rose-400 transition-colors"
             >
               Log Keluar
             </button>
@@ -1482,7 +1499,7 @@ export default function App() {
           <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
             <section className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 space-y-6">
               <div className="flex items-center mb-2">
-                <Users className="h-6 w-6 text-indigo-450 mr-2" />
+                <Users className="h-6 w-6 text-indigo-400 mr-2" />
                 <h2 className="text-xl font-bold text-white">1. Pengurusan Hak Akses Kakitangan</h2>
               </div>
 
@@ -1506,7 +1523,7 @@ export default function App() {
                         const userState = u.assignedState || '';
                         const userDistrict = u.assignedDistrict || '';
                         const stateDistricts = userState ? Object.keys(hierarchy[userState] || {}) : [];
-                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
+                        const districtClinics = (userState && userDistrict) ? (hierarchy[userState][userDistrict] || []) : [];
 
                         return (
                           <tr key={u.uid} className="border-b border-slate-850 last:border-0 hover:bg-slate-850/20 transition-colors">
@@ -1521,10 +1538,11 @@ export default function App() {
                               <select
                                 id={`status-${u.uid}`}
                                 style={selectActiveStyle}
-                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
+                                className={"text-xs font-bold py-1.5 px-3 rounded-full border outline-none " + (
+                                  u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
                                     u.status === 'rejected' ? 'bg-rose-955/40 text-rose-400 border-rose-900/30' :
                                       'bg-amber-955/40 text-amber-400 border-amber-900/30'
-                                  }`}
+                                )}
                                 value={u.status}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
                               >
@@ -1628,8 +1646,9 @@ export default function App() {
                           setAdminSelectedState(stateName);
                           setAdminSelectedDistrict('');
                         }}
-                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-950/40 border-purple-500 shadow-sm' : 'bg-slate-900 border-slate-800 hover:bg-slate-800'
-                          }`}
+                        className={"p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all " + (
+                          adminSelectedState === stateName ? 'bg-purple-955/40 border-purple-500 shadow-sm' : 'bg-slate-900 border-slate-800 hover:bg-slate-800'
+                        )}
                       >
                         <span className="font-semibold text-slate-300">{stateName}</span>
                         <button
@@ -1662,7 +1681,7 @@ export default function App() {
                         <input
                           id="input-hierarchy-district"
                           type="text"
-                          placeholder={`Daerah Baru...`}
+                          placeholder="Daerah Baru..."
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
                           className="border border-slate-800 bg-slate-955 p-2 rounded-lg text-sm flex-1 outline-none text-white focus:ring-2 focus:ring-blue-500"
@@ -1675,8 +1694,9 @@ export default function App() {
                           <div
                             key={distName}
                             onClick={() => setAdminSelectedDistrict(distName)}
-                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-950/40 border-blue-500 shadow-sm' : 'bg-slate-900 border-slate-800 hover:bg-slate-800'
-                              }`}
+                            className={"p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all " + (
+                              adminSelectedDistrict === distName ? 'bg-blue-950/40 border-blue-500 shadow-sm' : 'bg-slate-900 border-slate-800 hover:bg-slate-800'
+                            )}
                           >
                             <span className="font-semibold text-slate-300">{distName}</span>
                             <button
@@ -1705,7 +1725,7 @@ export default function App() {
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
                       <span className="bg-emerald-950 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-bold">
-                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).length}
+                        {((hierarchy[adminSelectedState] && hierarchy[adminSelectedState][adminSelectedDistrict]) || []).length}
                       </span>
                     )}
                   </h3>
@@ -1716,7 +1736,7 @@ export default function App() {
                         <input
                           id="input-hierarchy-clinic"
                           type="text"
-                          placeholder={`Klinik di ${adminSelectedDistrict}...`}
+                          placeholder={"Klinik di " + adminSelectedDistrict + "..."}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
                           className="border border-slate-800 bg-slate-955 p-2 rounded-lg text-sm flex-1 outline-none text-white focus:ring-2 focus:ring-emerald-500"
@@ -1725,7 +1745,7 @@ export default function App() {
                       </div>
 
                       <div className="flex-1 overflow-y-auto space-y-2">
-                        {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).map(clinic => (
+                        {((hierarchy[adminSelectedState] && hierarchy[adminSelectedState][adminSelectedDistrict]) || []).map(clinic => (
                           <div
                             key={clinic}
                             className="p-3 border border-slate-800 rounded-xl flex justify-between items-center bg-slate-900"
@@ -1754,7 +1774,7 @@ export default function App() {
             <section className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <Settings className="h-6 w-6 text-orange-450 mr-2" />
+                  <Settings className="h-6 w-6 text-orange-400 mr-2" />
                   <h2 className="text-lg font-bold">3. Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
@@ -1793,7 +1813,7 @@ export default function App() {
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
                     style={selectActiveStyle}
-                    className="border p-2 rounded-lg text-sm bg-slate-950 outline-none"
+                    className="border p-2 rounded-lg text-sm bg-slate-955 outline-none"
                   >
                     <option value="image">Image</option>
                     <option value="video">Video</option>

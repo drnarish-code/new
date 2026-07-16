@@ -10,11 +10,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    target: 'es2015', // Memaksa kompilasi ke ES2015 bagi mengelakkan crash pada WebView TV lama
+    target: 'es2015', // Transpile down to ES6 to prevent crash on older Chromium engines
     minify: 'esbuild'
   },
   esbuild: {
-    // Memaksa penukaran sintaks modern yang tidak disokong oleh Chromium WebView versi lama
+    // Force transform modern syntaxes that older WebViews cannot evaluate
     supported: {
       'optional-chaining': false,
       'nullish-coalescing': false,
