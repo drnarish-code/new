@@ -23,16 +23,13 @@ import {
   CheckCircle2,
   Trash2,
   Plus,
-  Tv,
-  Check,
-  Unlock,
   Sliders,
   Shield
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = typeof __firebase_config !== 'undefined'
   ? JSON.parse(__firebase_config)
@@ -51,6 +48,17 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && (
+      event.reason.message?.includes('message channel closed') ||
+      event.reason.message?.includes('A listener indicated an asynchronous')
+    )) {
+      event.preventDefault();
+    }
+  });
+}
 
 const DEFAULT_HIERARCHY = {
   "Pahang": {
@@ -81,6 +89,22 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&q=80&w=1200' },
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
+
+const selectActiveStyle = {
+  backgroundColor: '#020617',
+  color: '#f8fafc',
+  borderColor: '#334155',
+  borderWidth: '1px'
+};
+
+const selectDisabledStyle = {
+  backgroundColor: '#0f172a',
+  color: '#64748b',
+  borderColor: '#1e293b',
+  borderWidth: '1px',
+  cursor: 'not-allowed',
+  opacity: 0.6
+};
 
 function getQueryParam(name) {
   if (typeof window === 'undefined') return '';
@@ -134,26 +158,26 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-slate-800 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`p-2 rounded-xl ${type === 'confirm' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+          <div className={`p-2 rounded-xl ${type === 'confirm' ? 'bg-amber-950 text-amber-400 border border-amber-900/30' : 'bg-blue-950 text-blue-400 border border-blue-900/30'}`}>
             <Shield className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900">{title}</h3>
+          <h3 className="text-xl font-bold text-white">{title}</h3>
         </div>
-        <p className="text-slate-600 mb-6 text-sm leading-relaxed">{message}</p>
+        <p className="text-slate-300 mb-6 text-sm leading-relaxed">{message}</p>
         <div className="flex gap-3">
           {type === 'confirm' && (
             <button
               onClick={onCancel}
-              className="flex-1 py-3 px-4 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-2xl transition-colors border border-slate-200/60"
+              className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl transition-all border border-slate-700"
             >
               Batal
             </button>
           )}
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 px-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+            className="flex-1 py-3 px-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-550/20"
           >
             {type === 'confirm' ? 'Sahkan' : 'OK'}
           </button>
@@ -220,7 +244,8 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
             <select
               value={stateSel}
               onChange={(e) => { setStateSel(e.target.value); setDistrictSel(''); setClinicSel(''); }}
-              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              style={selectActiveStyle}
+              className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Pilih Negeri...</option>
               {states.map(s => <option key={s} value={s}>{s}</option>)}
@@ -233,7 +258,8 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
               value={districtSel}
               disabled={!stateSel}
               onChange={(e) => { setDistrictSel(e.target.value); setClinicSel(''); }}
-              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              style={stateSel ? selectActiveStyle : selectDisabledStyle}
+              className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Pilih Daerah...</option>
               {districts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -246,7 +272,8 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
               value={clinicSel}
               disabled={!districtSel}
               onChange={(e) => setClinicSel(e.target.value)}
-              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              style={districtSel ? selectActiveStyle : selectDisabledStyle}
+              className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Pilih Klinik...</option>
               {clinics.map(c => <option key={c} value={c}>{c}</option>)}
@@ -254,7 +281,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-rose-950/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
+            <div className="p-3 bg-rose-955/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
               {errorMsg}
             </div>
           )}
@@ -354,7 +381,8 @@ const InputScreen = ({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Negeri</label>
               <select
                 disabled={!isSuperadmin}
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+                style={isSuperadmin ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -371,7 +399,8 @@ const InputScreen = ({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Daerah</label>
               <select
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+                style={(isSuperadmin && selectedState) ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -387,7 +416,8 @@ const InputScreen = ({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Klinik Kesihatan</label>
               <select
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+                style={(isSuperadmin && selectedDistrict) ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -399,7 +429,8 @@ const InputScreen = ({
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Jabatan / Zon</label>
               <select
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-955 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                style={selectActiveStyle}
+                className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -411,7 +442,8 @@ const InputScreen = ({
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Bilik</label>
               <select
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-955 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                style={selectActiveStyle}
+                className="w-full p-3.5 border rounded-2xl outline-none font-semibold focus:ring-2 focus:ring-indigo-500"
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
               >
@@ -530,7 +562,6 @@ const OutputScreen = ({
   const [highlightedRoom, setHighlightedRoom] = useState(null);
   const videoRefs = useRef({});
 
-  // Fetch pictures/videos specific to this Negeri. Fall back to Global media if empty
   const activeMediaPlaylist = (stateMedia && stateMedia[selectedState] && stateMedia[selectedState].length > 0)
     ? stateMedia[selectedState]
     : mediaList;
@@ -806,7 +837,8 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
               <select
                 disabled={!isSuperadmin}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
+                style={isSuperadmin ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-4 border rounded-2xl text-white outline-none"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -823,7 +855,8 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Daerah</label>
               <select
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
+                style={(isSuperadmin && selectedState) ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-4 border rounded-2xl text-white outline-none"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -839,7 +872,8 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Klinik Kesihatan</label>
               <select
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
+                style={(isSuperadmin && selectedDistrict) ? selectActiveStyle : selectDisabledStyle}
+                className="w-full p-4 border rounded-2xl text-white outline-none"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -851,7 +885,8 @@ const OutputScreen = ({
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
               <select
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white"
+                style={selectActiveStyle}
+                className="w-full p-4 border rounded-2xl text-white outline-none"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -990,13 +1025,12 @@ const AdminPanel = ({
 }) => {
   const adminClinics = userPermissions?.[user.uid]?.managedClinics || [];
 
-  // Filter requests that are pending AND belong to the clinics this Admin is authorized to manage
   const pendingRequests = Object.values(userPermissions || {}).filter(u => {
     return u.status === 'pending' && adminClinics.includes(u.assignedClinic);
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col text-white">
+    <div className="min-h-screen bg-slate-955 flex flex-col text-white">
       <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Portal Pentadbir (Admin)</h1>
@@ -1012,7 +1046,7 @@ const AdminPanel = ({
           <h2 className="text-lg font-bold text-white mb-2">Klinik di bawah Kawalan Anda:</h2>
           <div className="flex flex-wrap gap-2">
             {adminClinics.map((clinic, i) => (
-              <span key={i} className="px-3.5 py-1.5 bg-indigo-950/60 text-indigo-400 text-xs font-bold rounded-full border border-indigo-900/30">
+              <span key={i} className="px-3.5 py-1.5 bg-indigo-955/60 text-indigo-400 text-xs font-bold rounded-full border border-indigo-900/30">
                 {clinic}
               </span>
             ))}
@@ -1694,7 +1728,7 @@ export default function App() {
               className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-emerald-500 hover:shadow-md transition-all group"
             >
               <div className="flex items-center">
-                <div className="h-12 w-12 bg-emerald-950 text-emerald-400 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all border border-emerald-900/20">
+                <div className="h-12 w-12 bg-emerald-955 text-emerald-400 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all border border-emerald-900/20">
                   <Monitor className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
@@ -1810,7 +1844,8 @@ export default function App() {
                             <td className="p-4 space-y-2">
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <select
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none w-32 font-semibold"
+                                  style={selectActiveStyle}
+                                  className="text-xs p-2 rounded-xl outline-none w-32 font-semibold"
                                   value={userState}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedState', e.target.value);
@@ -1824,7 +1859,8 @@ export default function App() {
 
                                 <select
                                   disabled={!userState}
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none disabled:opacity-40 w-32 font-semibold"
+                                  style={userState ? selectActiveStyle : selectDisabledStyle}
+                                  className="text-xs p-2 rounded-xl outline-none w-32 font-semibold"
                                   value={userDistrict}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedDistrict', e.target.value);
@@ -1837,7 +1873,8 @@ export default function App() {
 
                                 <select
                                   disabled={!userDistrict}
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none disabled:opacity-40 w-44 font-semibold"
+                                  style={userDistrict ? selectActiveStyle : selectDisabledStyle}
+                                  className="text-xs p-2 rounded-xl outline-none w-44 font-semibold"
                                   value={u.assignedClinic || ''}
                                   onChange={(e) => updateUserAssignment(u.uid, 'assignedClinic', e.target.value)}
                                 >
@@ -2094,7 +2131,8 @@ export default function App() {
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <select
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-955 font-bold text-indigo-400 focus:outline-none"
+                    style={selectActiveStyle}
+                    className="border p-2.5 rounded-xl text-sm font-bold text-indigo-400 focus:outline-none"
                     value={activeMediaState}
                     onChange={(e) => setActiveMediaState(e.target.value)}
                   >
@@ -2105,7 +2143,8 @@ export default function App() {
                   <select
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-955 font-bold text-white"
+                    style={selectActiveStyle}
+                    className="border p-2.5 rounded-xl text-sm font-bold text-white outline-none"
                   >
                     <option value="image">Gambar</option>
                     <option value="video">Video</option>
@@ -2162,7 +2201,8 @@ export default function App() {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Negeri</label>
                   <select
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white"
+                    style={selectActiveStyle}
+                    className="w-full p-3.5 border rounded-xl font-bold text-white outline-none"
                     value={genState}
                     onChange={(e) => {
                       setGenState(e.target.value);
@@ -2179,7 +2219,8 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daerah</label>
                   <select
                     disabled={!genState}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
+                    style={genState ? selectActiveStyle : selectDisabledStyle}
+                    className="w-full p-3.5 border rounded-xl font-bold text-white outline-none"
                     value={genDistrict}
                     onChange={(e) => {
                       setGenDistrict(e.target.value);
@@ -2195,7 +2236,8 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Klinik Kesihatan</label>
                   <select
                     disabled={!genDistrict}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
+                    style={genDistrict ? selectActiveStyle : selectDisabledStyle}
+                    className="w-full p-3.5 border rounded-xl font-bold text-white outline-none"
                     value={genClinic}
                     onChange={(e) => setGenClinic(e.target.value)}
                   >
@@ -2208,7 +2250,8 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Jabatan / Zon</label>
                   <select
                     disabled={!genClinic}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
+                    style={genClinic ? selectActiveStyle : selectDisabledStyle}
+                    className="w-full p-3.5 border rounded-xl font-bold text-white outline-none"
                     value={genDept}
                     onChange={(e) => setGenDept(e.target.value)}
                   >
