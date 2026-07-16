@@ -27,6 +27,7 @@ import {
   GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
+  signInWithPopup, // <-- Ditambah bagi menyelesaikan ralat "signInWithPopup is not defined"
   signOut
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
