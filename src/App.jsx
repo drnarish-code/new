@@ -17,9 +17,7 @@ import {
   ShieldAlert,
   Clock,
   UserCheck,
-  RotateCcw,
-  Sliders,
-  Shield
+  RotateCcw
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -27,7 +25,6 @@ import {
   getAuth,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signOut
@@ -151,8 +148,8 @@ function pcmToWav(pcm16Data, sampleRate) {
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-slate-900 rounded-3xl p-8 w-full max-w-md border border-slate-800 shadow-2xl animate-zoom-in">
+    <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900 rounded-3xl p-8 w-full max-w-md border border-slate-800 shadow-2xl">
         <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
         <p className="text-slate-300 mb-6 text-sm">{message}</p>
         <div className="flex gap-3">
@@ -1805,6 +1802,40 @@ export default function App() {
             </section>
           </main>
         </div>
+      )}
+
+      {/* SCREEN ROUTING */}
+      {currentView === 'input' && (
+        <InputScreen
+          hierarchy={hierarchy || {}}
+          departments={departments || []}
+          selectedState={selectedState} setSelectedState={setSelectedState}
+          selectedDistrict={selectedDistrict} setSelectedDistrict={setSelectedDistrict}
+          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
+          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
+          setCurrentView={setCurrentView}
+          showModal={showModal}
+          updateQueueNumber={updateQueueNumber}
+          dbStatus={dbStatus}
+          isSuperadmin={isSuperadmin}
+          queues={queues}
+        />
+      )}
+
+      {currentView === 'output' && (
+        <OutputScreen
+          hierarchy={hierarchy || {}}
+          departments={departments || []}
+          mediaList={mediaList || []}
+          selectedState={selectedState} setSelectedState={setSelectedState}
+          selectedDistrict={selectedDistrict} setSelectedDistrict={setSelectedDistrict}
+          selectedClinic={selectedClinic} setSelectedClinic={setSelectedClinic}
+          selectedDept={selectedDept} setSelectedDept={setSelectedDept}
+          setCurrentView={setCurrentView}
+          queues={queues}
+          dbStatus={dbStatus}
+          isSuperadmin={isSuperadmin}
+        />
       )}
       <Modal {...modalConfig} />
     </>
