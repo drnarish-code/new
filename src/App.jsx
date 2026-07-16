@@ -31,6 +31,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
+// Standard public Firebase project configuration for pkd-qms
 const firebaseConfig = {
   apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
   authDomain: "pkd-qms.firebaseapp.com",
@@ -47,6 +48,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Prevent unhandled promise rejection warnings in the browser console
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     if (event.reason && (
@@ -88,6 +90,7 @@ const DEFAULT_MEDIA = [
   { type: 'image', url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200' }
 ];
 
+// Inline styles for absolute high-contrast dropdown components (Fix for white select browser override)
 const selectActiveStyle = {
   backgroundColor: '#0f172a',
   color: '#f8fafc',
@@ -185,6 +188,7 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
   );
 };
 
+// Staff Location Onboarding Screen upon signup
 const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
   const [stateSel, setStateSel] = useState('');
   const [districtSel, setDistrictSel] = useState('');
@@ -229,7 +233,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
         <div className="text-center mb-6">
-          <div className="mx-auto h-16 w-16 bg-indigo-950 text-indigo-400 rounded-full flex items-center justify-center mb-4 border border-indigo-500/20">
+          <div className="mx-auto h-16 w-16 bg-indigo-955 text-indigo-400 rounded-full flex items-center justify-center mb-4 border border-indigo-500/20">
             <Building2 className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-black text-white tracking-tight">Mohon Akses QMS</h2>
@@ -279,7 +283,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-rose-950/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
+            <div className="p-3 bg-rose-955/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
               {errorMsg}
             </div>
           )}
@@ -304,6 +308,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
   );
 };
 
+// Staff Queue Call Panel
 const InputScreen = ({
   hierarchy,
   departments,
@@ -530,7 +535,7 @@ const InputScreen = ({
 
           <button
             onClick={handleCallNext}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-950/50 transition-all active:scale-98"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-955/50 transition-all active:scale-98"
           >
             <Volume2 className="h-6 w-6" />
             <span>Panggil Nombor</span>
@@ -541,6 +546,7 @@ const InputScreen = ({
   );
 };
 
+// TV Wait Screen / Queue Broadcaster Panel
 const OutputScreen = ({
   hierarchy,
   departments,
@@ -560,6 +566,7 @@ const OutputScreen = ({
   const [highlightedRoom, setHighlightedRoom] = useState(null);
   const videoRefs = useRef({});
 
+  // Dynamic state-specific media loops
   const activeMediaPlaylist = (stateMedia && stateMedia[selectedState] && stateMedia[selectedState].length > 0)
     ? stateMedia[selectedState]
     : mediaList;
@@ -654,7 +661,7 @@ const OutputScreen = ({
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error("Gemini TTS API returned failure code.");
+      if (!response.ok) throw new Error("Gemini TTS API returned failure.");
 
       const result = await response.json();
       const audioPart = result?.candidates?.[0]?.content?.parts?.[0];
@@ -671,11 +678,11 @@ const OutputScreen = ({
         const audioUrl = URL.createObjectURL(wavBlob);
 
         const audio = new Audio(audioUrl);
-        audio.play().catch(e => console.warn("Failed playing generated Gemini wave binary", e));
+        audio.play().catch(e => console.warn("Failed playing wave binary", e));
         return;
       }
     } catch (apiError) {
-      console.warn("Gemini TTS failing. Falling back seamlessly to browser WebSpeech API...", apiError);
+      console.warn("Gemini TTS falling back to native WebSpeech API...", apiError);
     }
 
     if (!window.speechSynthesis) return;
@@ -694,7 +701,7 @@ const OutputScreen = ({
       window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     } catch (fallbackError) {
-      console.warn("Both Gemini TTS and WebSpeech failed.", fallbackError);
+      console.warn("TTS failed.", fallbackError);
     }
   };
 
@@ -1012,6 +1019,7 @@ const OutputScreen = ({
   );
 };
 
+// Clinic-Scoped Admin Permission Controller
 const AdminPanel = ({
   hierarchy,
   userPermissions,
@@ -1055,7 +1063,7 @@ const AdminPanel = ({
         </div>
 
         <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 overflow-hidden">
-          <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+          <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-955/50">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Users className="h-6 w-6 text-indigo-400" />
               <span>Permohonan Akses Kakitangan</span>
@@ -1653,7 +1661,7 @@ export default function App() {
                   <span>Admin Klinik</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center space-x-1.5 bg-emerald-950/60 text-emerald-400 px-3 py-1 rounded-full text-xs font-black border border-emerald-900/30">
+                <span className="inline-flex items-center space-x-1.5 bg-emerald-955/60 text-emerald-400 px-3 py-1 rounded-full text-xs font-black border border-emerald-900/30">
                   <UserCheck className="h-3.5 w-3.5" />
                   <span>KK: {myPermission?.assignedClinic}</span>
                 </span>
@@ -1662,7 +1670,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-950 hover:text-rose-400 border border-slate-700/50 transition-all"
+              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-955 hover:text-rose-400 border border-slate-700/50 transition-all"
             >
               Log Keluar
             </button>
@@ -1893,7 +1901,7 @@ export default function App() {
                                           <input
                                             type="checkbox"
                                             checked={isChecked}
-                                            className="rounded border-slate-850 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                                            className="rounded border-slate-850 text-indigo-600 focus:ring-indigo-500 bg-slate-955"
                                             onChange={(e) => updateUserManagedClinics(u.uid, clinic, e.target.checked)}
                                           />
                                           <span>{clinic}</span>
