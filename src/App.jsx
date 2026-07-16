@@ -399,7 +399,7 @@ const InputScreen = ({
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Jabatan / Zon</label>
               <select
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-955 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -411,7 +411,7 @@ const InputScreen = ({
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Bilik</label>
               <select
-                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-955 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
               >
@@ -435,7 +435,7 @@ const InputScreen = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center p-4 animate-in fade-in duration-200">
+    <div className="min-h-screen bg-slate-955 text-white flex flex-col justify-center p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-sm mx-auto flex flex-col h-full bg-slate-900 border border-slate-800 rounded-[32px] p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -451,7 +451,7 @@ const InputScreen = ({
           </button>
         </div>
 
-        <div className="bg-slate-950 rounded-2xl p-6 mb-6 flex justify-center items-center shadow-inner border border-slate-800 min-h-[120px]">
+        <div className="bg-slate-955 rounded-2xl p-6 mb-6 flex justify-center items-center shadow-inner border border-slate-800 min-h-[120px]">
           <span className="text-6xl font-black tracking-wider text-indigo-400 font-mono">
             {currentInput || '----'}
           </span>
@@ -469,7 +469,7 @@ const InputScreen = ({
           ))}
           <button
             onClick={() => setCurrentInput('')}
-            className="bg-rose-950/80 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all border border-rose-900/40"
+            className="bg-rose-955/80 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all border border-rose-900/40"
           >
             CLR
           </button>
@@ -500,7 +500,7 @@ const InputScreen = ({
 
           <button
             onClick={handleCallNext}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-950/50 transition-all active:scale-98"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-955/50 transition-all active:scale-98"
           >
             <Volume2 className="h-6 w-6" />
             <span>Panggil Nombor</span>
@@ -794,7 +794,7 @@ const OutputScreen = ({
 
   if (!setupDone) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-white">
           <h2 className="text-2xl font-bold mb-2 text-center text-white">Konfigurasi TV Display</h2>
           <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6">
@@ -806,7 +806,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
               <select
                 disabled={!isSuperadmin}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -823,7 +823,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Daerah</label>
               <select
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -839,7 +839,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Klinik Kesihatan</label>
               <select
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white disabled:opacity-40"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -851,7 +851,7 @@ const OutputScreen = ({
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
               <select
-                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-955 text-white"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -908,7 +908,7 @@ const OutputScreen = ({
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row relative z-10">
-        <div className="flex-1 relative bg-slate-950 flex items-center justify-center overflow-hidden">
+        <div className="flex-1 relative bg-slate-955 flex items-center justify-center overflow-hidden">
           {activeMediaPlaylist.map((media, index) => (
             media.type === 'video' ? (
               <video
@@ -945,7 +945,7 @@ const OutputScreen = ({
             <h3 className="text-2xl font-black text-slate-300 uppercase tracking-wider text-right">Nombor</h3>
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col bg-slate-950">
+          <div className="flex-1 overflow-hidden flex flex-col bg-slate-955">
             {recentCalls.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-slate-600 text-2xl font-semibold">
                 Tiada panggilan
@@ -1028,7 +1028,7 @@ const AdminPanel = ({
               <Users className="h-6 w-6 text-indigo-400" />
               <span>Permohonan Akses Kakitangan</span>
             </h2>
-            <span className="bg-rose-950 text-rose-400 px-3 py-1 rounded-full text-xs font-bold font-mono border border-rose-900/20">
+            <span className="bg-rose-955 text-rose-400 px-3 py-1 rounded-full text-xs font-bold font-mono border border-rose-900/20">
               {pendingRequests.length} permohonan
             </span>
           </div>
@@ -1054,7 +1054,7 @@ const AdminPanel = ({
                   <div className="flex gap-2 w-full md:w-auto">
                     <button
                       onClick={() => updateUserStatus(req.uid, 'rejected')}
-                      className="flex-1 md:flex-none px-4 py-2 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 text-sm font-bold rounded-xl border border-rose-900/30 transition-all"
+                      className="flex-1 md:flex-none px-4 py-2 bg-rose-955/40 text-rose-400 hover:bg-rose-900/60 text-sm font-bold rounded-xl border border-rose-900/30 transition-all"
                     >
                       Tolak
                     </button>
@@ -1492,7 +1492,7 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-955 flex items-center justify-center">
         <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
       </div>
     );
@@ -1500,7 +1500,7 @@ export default function App() {
 
   if (!user && getQueryParam('mode') !== 'tv') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-8 bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center animate-in fade-in zoom-in duration-300">
           <div className="mx-auto h-20 w-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
             <svg className="h-10 w-10 text-white animate-pulse" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1512,7 +1512,7 @@ export default function App() {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl hover:bg-slate-850 hover:border-indigo-500 transition-all shadow-sm group"
+            className="w-full flex items-center justify-center space-x-3 py-4 bg-slate-955 border-2 border-slate-800 rounded-2xl hover:bg-slate-850 hover:border-indigo-500 transition-all shadow-sm group"
           >
             <svg className="w-6 h-6 group-hover:scale-105 transition-transform" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -1544,7 +1544,7 @@ export default function App() {
   if (user && !isSuperadmin && myPermission && myPermission.status !== 'approved') {
     const isRejected = myPermission?.status === 'rejected';
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center space-y-6">
           <div className="mx-auto h-20 w-20 rounded-full flex items-center justify-center shadow-lg animate-bounce">
             {isRejected ? (
@@ -1570,7 +1570,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center space-x-3 text-left">
+          <div className="bg-slate-955 p-4 rounded-2xl border border-slate-800 flex items-center space-x-3 text-left">
             <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border border-slate-800 shadow-sm" />
             <div className="overflow-hidden">
               <p className="font-bold text-white truncate">{user.displayName}</p>
@@ -1593,7 +1593,7 @@ export default function App() {
   if (currentView === 'login' && user) {
     const isAdmin = myPermission?.role === 'admin';
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6 animate-in fade-in duration-200">
           <div className="text-center bg-slate-900 p-8 rounded-[32px] shadow-xl border border-slate-800">
             <div className="mx-auto h-16 w-16 mb-4 relative">
@@ -1630,7 +1630,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-950 hover:text-rose-400 border border-slate-700/50 transition-all"
+              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-955 hover:text-rose-400 border border-slate-700/50 transition-all"
             >
               Log Keluar
             </button>
@@ -1661,7 +1661,7 @@ export default function App() {
                 className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-indigo-500 hover:shadow-md transition-all group"
               >
                 <div className="flex items-center">
-                  <div className="h-12 w-12 bg-indigo-950 text-indigo-400 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all border border-indigo-900/20">
+                  <div className="h-12 w-12 bg-indigo-955 text-indigo-400 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all border border-indigo-900/20">
                     <Shield className="h-6 w-6" />
                   </div>
                   <div className="ml-4 text-left">
@@ -1726,7 +1726,7 @@ export default function App() {
       )}
 
       {currentView === 'admin' && (
-        <div className="min-h-screen bg-slate-950 flex flex-col text-white">
+        <div className="min-h-screen bg-slate-955 flex flex-col text-white">
           <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">Dashboard Superadmin</h1>
@@ -1751,7 +1751,7 @@ export default function App() {
               <div className="overflow-x-auto rounded-2xl border border-slate-800">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400 bg-slate-950/50">
+                    <tr className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400 bg-slate-955/50">
                       <th className="p-4 font-bold">Kakitangan</th>
                       <th className="p-4 font-bold">Status Akses</th>
                       <th className="p-4 font-bold">Peranan</th>
@@ -1785,9 +1785,9 @@ export default function App() {
                             </td>
                             <td className="p-4">
                               <select
-                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none bg-slate-950 ${u.status === 'approved' ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/30' :
-                                    u.status === 'rejected' ? 'bg-rose-950/40 text-rose-400 border-rose-900/30' :
-                                      'bg-amber-950/40 text-amber-400 border-amber-900/30'
+                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none bg-slate-950 ${u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
+                                    u.status === 'rejected' ? 'bg-rose-955/40 text-rose-400 border-rose-900/30' :
+                                      'bg-amber-955/40 text-amber-400 border-amber-900/30'
                                   }`}
                                 value={u.status}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
@@ -1810,7 +1810,7 @@ export default function App() {
                             <td className="p-4 space-y-2">
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <select
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none w-32 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none w-32 font-semibold"
                                   value={userState}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedState', e.target.value);
@@ -1824,7 +1824,7 @@ export default function App() {
 
                                 <select
                                   disabled={!userState}
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none disabled:opacity-40 w-32 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none disabled:opacity-40 w-32 font-semibold"
                                   value={userDistrict}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedDistrict', e.target.value);
@@ -1837,7 +1837,7 @@ export default function App() {
 
                                 <select
                                   disabled={!userDistrict}
-                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none disabled:opacity-40 w-44 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-955 text-white outline-none disabled:opacity-40 w-44 font-semibold"
                                   value={u.assignedClinic || ''}
                                   onChange={(e) => updateUserAssignment(u.uid, 'assignedClinic', e.target.value)}
                                 >
@@ -1848,7 +1848,7 @@ export default function App() {
 
                               {/* Multi-Clinic Authorization selection panel for users designated as Admin */}
                               {userRole === 'admin' && userDistrict && (
-                                <div className="mt-2 p-3 bg-indigo-950/40 border border-indigo-900/30 rounded-xl space-y-2">
+                                <div className="mt-2 p-3 bg-indigo-955/40 border border-indigo-900/30 rounded-xl space-y-2">
                                   <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Klinik Kawalan Admin ({userDistrict}):</p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                     {allClinicsInDistrict.map(clinic => {
@@ -1896,7 +1896,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 {/* STATE BOX */}
-                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Negeri</span>
                     <span className="bg-purple-950 text-purple-400 px-2.5 py-0.5 rounded-full text-xs font-black border border-purple-900/30">{Object.keys(hierarchy).length}</span>
@@ -1908,7 +1908,7 @@ export default function App() {
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
                       onChange={(e) => setNewHierarchyState(e.target.value)}
-                      className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-white bg-slate-950"
+                      className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-white bg-slate-955"
                     />
                     <button onClick={addState} className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                       <Plus className="h-5 w-5" />
@@ -1923,7 +1923,7 @@ export default function App() {
                           setAdminSelectedState(stateName);
                           setAdminSelectedDistrict('');
                         }}
-                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-950/40 border-purple-500 shadow-sm' : 'bg-slate-950 border-slate-850 hover:bg-slate-800'
+                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-955/40 border-purple-500 shadow-sm' : 'bg-slate-955 border-slate-850 hover:bg-slate-800'
                           }`}
                       >
                         <span className="font-bold text-white text-sm">{stateName}</span>
@@ -1942,7 +1942,7 @@ export default function App() {
                 </div>
 
                 {/* DISTRICT BOX */}
-                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Daerah</span>
                     {adminSelectedState && (
@@ -1960,7 +1960,7 @@ export default function App() {
                           placeholder={`Daerah Baru...`}
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
-                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-white bg-slate-950"
+                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-white bg-slate-955"
                         />
                         <button onClick={addDistrict} className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                           <Plus className="h-5 w-5" />
@@ -1972,7 +1972,7 @@ export default function App() {
                           <div
                             key={distName}
                             onClick={() => setAdminSelectedDistrict(distName)}
-                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-950/40 border-blue-500 shadow-sm' : 'bg-slate-950 border-slate-850 hover:bg-slate-800'
+                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-955/40 border-blue-500 shadow-sm' : 'bg-slate-955 border-slate-850 hover:bg-slate-800'
                               }`}
                           >
                             <span className="font-bold text-white text-sm">{distName}</span>
@@ -1998,7 +1998,7 @@ export default function App() {
                 </div>
 
                 {/* CLINIC BOX */}
-                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
@@ -2016,7 +2016,7 @@ export default function App() {
                           placeholder={`Klinik baru...`}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
-                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-white bg-slate-950"
+                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-white bg-slate-955"
                         />
                         <button onClick={addClinic} className="bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                           <Plus className="h-5 w-5" />
@@ -2027,7 +2027,7 @@ export default function App() {
                         {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).map(clinic => (
                           <div
                             key={clinic}
-                            className="p-3 border border-slate-800 rounded-xl flex justify-between items-center bg-slate-950"
+                            className="p-3 border border-slate-800 rounded-xl flex justify-between items-center bg-slate-955"
                           >
                             <span className="font-bold text-white text-xs">{clinic}</span>
                             <button
@@ -2064,14 +2064,14 @@ export default function App() {
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold text-white bg-slate-950"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold text-white bg-slate-955"
                   />
                   <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
                 {departments.map((dept, idx) => (
-                  <div key={idx} className="px-4 py-2 border border-slate-800 rounded-2xl flex items-center bg-slate-950/50 shadow-sm space-x-3 text-white">
+                  <div key={idx} className="px-4 py-2 border border-slate-800 rounded-2xl flex items-center bg-slate-955/50 shadow-sm space-x-3 text-white">
                     <span className="font-bold text-slate-300 text-sm">{dept}</span>
                     <button onClick={() => removeDepartment(dept)} className="text-slate-500 hover:text-rose-500 transition-colors">
                       <XCircle className="h-4.5 w-4.5" />
@@ -2094,7 +2094,7 @@ export default function App() {
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <select
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-950 font-bold text-indigo-400 focus:outline-none"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-955 font-bold text-indigo-400 focus:outline-none"
                     value={activeMediaState}
                     onChange={(e) => setActiveMediaState(e.target.value)}
                   >
@@ -2105,7 +2105,7 @@ export default function App() {
                   <select
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-950 font-bold text-white"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-955 font-bold text-white"
                   >
                     <option value="image">Gambar</option>
                     <option value="video">Video</option>
@@ -2116,21 +2116,21 @@ export default function App() {
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
                     onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 sm:w-64 focus:ring-2 focus:ring-emerald-500 outline-none text-white bg-slate-950"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 sm:w-64 focus:ring-2 focus:ring-emerald-500 outline-none text-white bg-slate-955"
                   />
                   <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-slate-950 border border-slate-850 rounded-xl mb-4">
+                <div className="p-3 bg-slate-955 border border-slate-850 rounded-xl mb-4">
                   <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                     Sedang Memaparkan: {activeMediaState ? `Playlist Negeri ${activeMediaState}` : 'Playlist Global (Default)'}
                   </span>
                 </div>
 
                 {((activeMediaState ? (stateMedia[activeMediaState] || []) : mediaList)).map((media, idx) => (
-                  <div key={idx} className="p-4 border border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950 hover:bg-slate-850 transition-colors">
+                  <div key={idx} className="p-4 border border-slate-800 rounded-2xl flex justify-between items-center bg-slate-955 hover:bg-slate-850 transition-colors">
                     <div className="flex items-center space-x-3 overflow-hidden">
                       {media.type === 'video' ? <Film className="h-5 w-5 text-indigo-400 shrink-0" /> : <ImageIcon className="h-5 w-5 text-emerald-400 shrink-0" />}
                       <span className="font-semibold text-slate-300 truncate text-sm">{media.url}</span>
@@ -2162,7 +2162,7 @@ export default function App() {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Negeri</label>
                   <select
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white"
                     value={genState}
                     onChange={(e) => {
                       setGenState(e.target.value);
@@ -2179,7 +2179,7 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daerah</label>
                   <select
                     disabled={!genState}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
                     value={genDistrict}
                     onChange={(e) => {
                       setGenDistrict(e.target.value);
@@ -2195,7 +2195,7 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Klinik Kesihatan</label>
                   <select
                     disabled={!genDistrict}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
                     value={genClinic}
                     onChange={(e) => setGenClinic(e.target.value)}
                   >
@@ -2208,7 +2208,7 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Jabatan / Zon</label>
                   <select
                     disabled={!genClinic}
-                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-955 font-bold text-white disabled:opacity-40"
                     value={genDept}
                     onChange={(e) => setGenDept(e.target.value)}
                   >
@@ -2219,7 +2219,7 @@ export default function App() {
               </div>
 
               {genState && genDistrict && genClinic && genDept && (
-                <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="p-4 bg-slate-955 border border-slate-850 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="overflow-hidden w-full">
                     <p className="text-xs font-bold text-slate-500 uppercase">Pautan Dijana:</p>
                     <p className="text-xs text-indigo-400 font-mono truncate select-all mt-1 bg-slate-900 p-3 border border-slate-800 rounded-xl shadow-inner">{generateBypassLink()}</p>

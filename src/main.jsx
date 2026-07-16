@@ -1,9 +1,41 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import './index.css';
 
-// Dynamically inject Tailwind CSS CDN to bypass bundle compiling errors on Vercel
+// 1. Inject Premium Fallback Styles (Background, Scrollbars, and Resets)
+if (!document.getElementById('qms-global-resets')) {
+  const styleElement = document.createElement('style');
+  styleElement.id = 'qms-global-resets';
+  styleElement.textContent = `
+    body {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #020617 !important; /* Force ultra-premium Slate-950 dark theme instantly */
+      color: #f8fafc;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  `;
+  document.head.appendChild(styleElement);
+}
+
+// 2. Inject modern Tailwind CSS CDN
 if (!document.getElementById('tailwind-cdn')) {
   const script = document.createElement('script');
   script.id = 'tailwind-cdn';
@@ -11,7 +43,7 @@ if (!document.getElementById('tailwind-cdn')) {
   document.head.appendChild(script);
 }
 
-// Dynamically inject the premium Inter Google Font
+// 3. Inject premium Inter Google Font
 if (!document.getElementById('inter-font-cdn')) {
   const link = document.createElement('link');
   link.id = 'inter-font-cdn';
