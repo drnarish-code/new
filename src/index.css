@@ -1,1 +1,1 @@
-/* Overwritten to be completely empty. This prevents Vite's post-css minifier from running and crashing the build. All styles are handled dynamically in main.jsx! */
+/* Kept empty on purpose. Core resets are injected dynamically in main.jsx to bypass the fragile Vite finalizeCss pipeline and prevent deployment compilation errors. */

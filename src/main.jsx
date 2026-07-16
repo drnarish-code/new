@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 
-// 1. Inject Premium Fallback Styles (Background, Scrollbars, and Resets)
 if (!document.getElementById('qms-global-resets')) {
   const styleElement = document.createElement('style');
   styleElement.id = 'qms-global-resets';
@@ -12,7 +11,7 @@ if (!document.getElementById('qms-global-resets')) {
       padding: 0;
       box-sizing: border-box;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #020617 !important; /* Force ultra-premium Slate-950 dark theme instantly */
+      background-color: #020617 !important; /* Forces slate-950 background immediately */
       color: #f8fafc;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -35,7 +34,6 @@ if (!document.getElementById('qms-global-resets')) {
   document.head.appendChild(styleElement);
 }
 
-// 2. Inject modern Tailwind CSS CDN
 if (!document.getElementById('tailwind-cdn')) {
   const script = document.createElement('script');
   script.id = 'tailwind-cdn';
@@ -43,7 +41,6 @@ if (!document.getElementById('tailwind-cdn')) {
   document.head.appendChild(script);
 }
 
-// 3. Inject premium Inter Google Font
 if (!document.getElementById('inter-font-cdn')) {
   const link = document.createElement('link');
   link.id = 'inter-font-cdn';

@@ -11,7 +11,7 @@ import {
   Play,
   Volume2,
   Film,
-  Image as ImageIcon,
+  ImageIcon,
   MapPin,
   Map,
   ShieldAlert,
@@ -31,18 +31,16 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-const firebaseConfig = typeof __firebase_config !== 'undefined'
-  ? JSON.parse(__firebase_config)
-  : {
-    apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
-    authDomain: "pkd-qms.firebaseapp.com",
-    databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "pkd-qms",
-    storageBucket: "pkd-qms.firebasestorage.app",
-    messagingSenderId: "121516361841",
-    appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
-    measurementId: "G-RWMC278HEC"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAYwXDITqFSLJaRImMvX0eTOrxhrdCylok",
+  authDomain: "pkd-qms.firebaseapp.com",
+  databaseURL: "https://pkd-qms-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pkd-qms",
+  storageBucket: "pkd-qms.firebasestorage.app",
+  messagingSenderId: "121516361841",
+  appId: "1:121516361841:web:6625dde82a3ec46c1f73d0",
+  measurementId: "G-RWMC278HEC"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -91,15 +89,15 @@ const DEFAULT_MEDIA = [
 ];
 
 const selectActiveStyle = {
-  backgroundColor: '#020617',
+  backgroundColor: '#0f172a',
   color: '#f8fafc',
   borderColor: '#334155',
   borderWidth: '1px'
 };
 
 const selectDisabledStyle = {
-  backgroundColor: '#0f172a',
-  color: '#64748b',
+  backgroundColor: '#020617',
+  color: '#475569',
   borderColor: '#1e293b',
   borderWidth: '1px',
   cursor: 'not-allowed',
@@ -157,13 +155,13 @@ function pcmToWav(pcm16Data, sampleRate) {
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-slate-800 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2 rounded-xl ${type === 'confirm' ? 'bg-amber-950 text-amber-400 border border-amber-900/30' : 'bg-blue-950 text-blue-400 border border-blue-900/30'}`}>
             <Shield className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-white">{title}</h3>
+          <h3 className="text-xl font-bold text-white font-sans">{title}</h3>
         </div>
         <p className="text-slate-300 mb-6 text-sm leading-relaxed">{message}</p>
         <div className="flex gap-3">
@@ -177,7 +175,7 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }
           )}
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 px-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-550/20"
+            className="flex-1 py-3 px-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
           >
             {type === 'confirm' ? 'Sahkan' : 'OK'}
           </button>
@@ -235,7 +233,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
             <Building2 className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-black text-white tracking-tight">Mohon Akses QMS</h2>
-          <p className="text-slate-400 text-sm mt-1">Sila tentukan lokasi bertugas anda untuk pengesahan pentadbir.</p>
+          <p className="text-slate-400 text-sm mt-1 font-medium">Sila tentukan lokasi bertugas anda untuk kelulusan pentadbir.</p>
         </div>
 
         <form onSubmit={handleApply} className="space-y-4">
@@ -281,7 +279,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-rose-955/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
+            <div className="p-3 bg-rose-950/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
               {errorMsg}
             </div>
           )}
@@ -362,7 +360,7 @@ const InputScreen = ({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-955 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -501,7 +499,7 @@ const InputScreen = ({
           ))}
           <button
             onClick={() => setCurrentInput('')}
-            className="bg-rose-955/80 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all border border-rose-900/40"
+            className="bg-rose-950/80 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all border border-rose-900/40"
           >
             CLR
           </button>
@@ -525,14 +523,14 @@ const InputScreen = ({
               onClick={handleRedial}
               className="w-full bg-amber-600 hover:bg-amber-500 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 shadow-lg shadow-amber-900/40 border border-amber-500/20 transition-all active:scale-98"
             >
-              <RotateCcw className="h-5 w-5 animate-spin-reverse" />
+              <RotateCcw className="h-5 w-5" />
               <span>Panggil Semula ({activeNumber})</span>
             </button>
           )}
 
           <button
             onClick={handleCallNext}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-955/50 transition-all active:scale-98"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-bold text-xl flex items-center justify-center space-x-2 shadow-xl shadow-indigo-950/50 transition-all active:scale-98"
           >
             <Volume2 className="h-6 w-6" />
             <span>Panggil Nombor</span>
@@ -826,8 +824,8 @@ const OutputScreen = ({
   if (!setupDone) {
     return (
       <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-white">
-          <h2 className="text-2xl font-bold mb-2 text-center text-white">Konfigurasi TV Display</h2>
+        <div className="w-full max-w-md bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-white animate-in fade-in zoom-in-95">
+          <h2 className="text-2xl font-bold mb-2 text-center text-white font-sans">Konfigurasi TV Display</h2>
           <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6">
             {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
           </p>
@@ -905,9 +903,9 @@ const OutputScreen = ({
               <button
                 disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center transition-colors"
+                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center transition-colors shadow-lg"
               >
-                <Play className="h-5 w-5 mr-2" /> Mula TV
+                <Play className="h-5 w-5 mr-2 animate-pulse" /> Mula TV
               </button>
             </div>
           </div>
@@ -982,7 +980,7 @@ const OutputScreen = ({
 
           <div className="flex-1 overflow-hidden flex flex-col bg-slate-955">
             {recentCalls.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-600 text-2xl font-semibold">
+              <div className="flex-1 flex items-center justify-center text-slate-600 text-2xl font-semibold font-sans">
                 Tiada panggilan
               </div>
             ) : (
@@ -1030,7 +1028,7 @@ const AdminPanel = ({
   });
 
   return (
-    <div className="min-h-screen bg-slate-955 flex flex-col text-white">
+    <div className="min-h-screen bg-slate-955 flex flex-col text-white font-sans">
       <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Portal Pentadbir (Admin)</h1>
@@ -1041,7 +1039,7 @@ const AdminPanel = ({
         </button>
       </header>
 
-      <main className="flex-1 p-6 max-w-4xl mx-auto w-full space-y-8">
+      <main className="flex-1 p-6 max-w-4xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
         <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold text-white mb-2">Klinik di bawah Kawalan Anda:</h2>
           <div className="flex flex-wrap gap-2">
@@ -1062,7 +1060,7 @@ const AdminPanel = ({
               <Users className="h-6 w-6 text-indigo-400" />
               <span>Permohonan Akses Kakitangan</span>
             </h2>
-            <span className="bg-rose-955 text-rose-400 px-3 py-1 rounded-full text-xs font-bold font-mono border border-rose-900/20">
+            <span className="bg-rose-950 text-rose-400 px-3 py-1 rounded-full text-xs font-bold font-mono border border-rose-900/20">
               {pendingRequests.length} permohonan
             </span>
           </div>
@@ -1088,7 +1086,7 @@ const AdminPanel = ({
                   <div className="flex gap-2 w-full md:w-auto">
                     <button
                       onClick={() => updateUserStatus(req.uid, 'rejected')}
-                      className="flex-1 md:flex-none px-4 py-2 bg-rose-955/40 text-rose-400 hover:bg-rose-900/60 text-sm font-bold rounded-xl border border-rose-900/30 transition-all"
+                      className="flex-1 md:flex-none px-4 py-2 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 text-sm font-bold rounded-xl border border-rose-900/30 transition-all"
                     >
                       Tolak
                     </button>
@@ -1664,7 +1662,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-955 hover:text-rose-400 border border-slate-700/50 transition-all"
+              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-950 hover:text-rose-400 border border-slate-700/50 transition-all"
             >
               Log Keluar
             </button>
@@ -1682,7 +1680,7 @@ export default function App() {
                   </div>
                   <div className="ml-4 text-left">
                     <p className="text-lg font-bold text-white">Portal Superadmin</p>
-                    <p className="text-sm text-slate-400">Konfigurasi & Kelulusan Global</p>
+                    <p className="text-sm text-slate-400 font-medium">Konfigurasi & Kelulusan Global</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-purple-500" />
@@ -1700,7 +1698,7 @@ export default function App() {
                   </div>
                   <div className="ml-4 text-left">
                     <p className="text-lg font-bold text-white">Portal Pentadbir (Admin)</p>
-                    <p className="text-sm text-slate-400">Urus permohonan klinik bertugas</p>
+                    <p className="text-sm text-slate-400 font-medium">Urus permohonan klinik bertugas</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-indigo-500" />
@@ -1717,7 +1715,7 @@ export default function App() {
                 </div>
                 <div className="ml-4 text-left">
                   <p className="text-lg font-bold text-white">Portal Staf (Input)</p>
-                  <p className="text-sm text-slate-400">Panggil nombor giliran pesakit</p>
+                  <p className="text-sm text-slate-400 font-medium">Panggil nombor giliran pesakit</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-blue-500" />
@@ -1733,7 +1731,7 @@ export default function App() {
                 </div>
                 <div className="ml-4 text-left">
                   <p className="text-lg font-bold text-white">Skrin TV (Output)</p>
-                  <p className="text-sm text-slate-400">Paparan ruang menunggu pesakit</p>
+                  <p className="text-sm text-slate-400 font-medium">Paparan ruang menunggu pesakit</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-emerald-500" />
@@ -1760,7 +1758,7 @@ export default function App() {
       )}
 
       {currentView === 'admin' && (
-        <div className="min-h-screen bg-slate-955 flex flex-col text-white">
+        <div className="min-h-screen bg-slate-955 flex flex-col text-white font-sans">
           <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">Dashboard Superadmin</h1>
@@ -1771,9 +1769,8 @@ export default function App() {
             </button>
           </header>
 
-          <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
+          <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
 
-            {/* 1. Pengurusan Hak Akses Kakitangan */}
             <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
@@ -1819,11 +1816,12 @@ export default function App() {
                             </td>
                             <td className="p-4">
                               <select
-                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none bg-slate-950 ${u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
+                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
                                     u.status === 'rejected' ? 'bg-rose-955/40 text-rose-400 border-rose-900/30' :
                                       'bg-amber-955/40 text-amber-400 border-amber-900/30'
                                   }`}
                                 value={u.status}
+                                style={selectActiveStyle}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
                               >
                                 <option value="pending">Menunggu</option>
@@ -1833,8 +1831,9 @@ export default function App() {
                             </td>
                             <td className="p-4">
                               <select
-                                className="text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-800 outline-none bg-slate-950 text-slate-200"
+                                className="text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-800 outline-none text-slate-200"
                                 value={userRole}
+                                style={selectActiveStyle}
                                 onChange={(e) => updateUserRole(u.uid, e.target.value)}
                               >
                                 <option value="staff">Staff</option>
@@ -1883,7 +1882,6 @@ export default function App() {
                                 </select>
                               </div>
 
-                              {/* Multi-Clinic Authorization selection panel for users designated as Admin */}
                               {userRole === 'admin' && userDistrict && (
                                 <div className="mt-2 p-3 bg-indigo-955/40 border border-indigo-900/30 rounded-xl space-y-2">
                                   <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Klinik Kawalan Admin ({userDistrict}):</p>
@@ -1895,7 +1893,7 @@ export default function App() {
                                           <input
                                             type="checkbox"
                                             checked={isChecked}
-                                            className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                                            className="rounded border-slate-850 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
                                             onChange={(e) => updateUserManagedClinics(u.uid, clinic, e.target.checked)}
                                           />
                                           <span>{clinic}</span>
@@ -1923,7 +1921,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 2. Pengurusan Struktur Regional (Klinik) */}
             <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center mb-2">
                 <Map className="h-7 w-7 text-purple-400 mr-2" />
@@ -1932,7 +1929,6 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                {/* STATE BOX */}
                 <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Negeri</span>
@@ -1978,7 +1974,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* DISTRICT BOX */}
                 <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Daerah</span>
@@ -2034,7 +2029,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* CLINIC BOX */}
                 <div className="border border-slate-800 rounded-2xl p-5 bg-slate-955/40 flex flex-col h-[400px]">
                   <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Klinik Kesihatan</span>
@@ -2088,7 +2082,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 3. Jabatan / Zon (Zoning) */}
             <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center">
@@ -2118,7 +2111,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 4. TV Media Playlist */}
             <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8">
               <div className="flex flex-col xl:flex-row justify-between gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -2162,7 +2154,7 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-slate-955 border border-slate-850 rounded-xl mb-4">
+                <div className="p-3 bg-slate-955 border border-slate-855 rounded-xl mb-4">
                   <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                     Sedang Memaparkan: {activeMediaState ? `Playlist Negeri ${activeMediaState}` : 'Playlist Global (Default)'}
                   </span>
@@ -2187,7 +2179,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* 5. TV Bypass Link Generator */}
             <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center">
                 <LinkIcon className="h-7 w-7 text-blue-400 mr-2" />
@@ -2262,7 +2253,7 @@ export default function App() {
               </div>
 
               {genState && genDistrict && genClinic && genDept && (
-                <div className="p-4 bg-slate-955 border border-slate-850 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="p-4 bg-slate-955 border border-slate-850 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in zoom-in-95">
                   <div className="overflow-hidden w-full">
                     <p className="text-xs font-bold text-slate-500 uppercase">Pautan Dijana:</p>
                     <p className="text-xs text-indigo-400 font-mono truncate select-all mt-1 bg-slate-900 p-3 border border-slate-800 rounded-xl shadow-inner">{generateBypassLink()}</p>
