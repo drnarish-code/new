@@ -204,23 +204,23 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
         <div className="text-center mb-6">
-          <div className="mx-auto h-16 w-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto h-16 w-16 bg-indigo-950 text-indigo-400 rounded-full flex items-center justify-center mb-4 border border-indigo-500/20">
             <Building2 className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Mohon Akses QMS</h2>
-          <p className="text-slate-500 text-sm mt-1">Sila tentukan lokasi bertugas anda untuk pengesahan pentadbir.</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Mohon Akses QMS</h2>
+          <p className="text-slate-400 text-sm mt-1">Sila tentukan lokasi bertugas anda untuk pengesahan pentadbir.</p>
         </div>
 
         <form onSubmit={handleApply} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Negeri</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Negeri</label>
             <select
               value={stateSel}
               onChange={(e) => { setStateSel(e.target.value); setDistrictSel(''); setClinicSel(''); }}
-              className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Pilih Negeri...</option>
               {states.map(s => <option key={s} value={s}>{s}</option>)}
@@ -228,12 +228,12 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Daerah</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Daerah</label>
             <select
               value={districtSel}
               disabled={!stateSel}
               onChange={(e) => { setDistrictSel(e.target.value); setClinicSel(''); }}
-              className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
             >
               <option value="">Pilih Daerah...</option>
               {districts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -241,12 +241,12 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Klinik Kesihatan</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Klinik Kesihatan</label>
             <select
               value={clinicSel}
               disabled={!districtSel}
               onChange={(e) => setClinicSel(e.target.value)}
-              className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
             >
               <option value="">Pilih Klinik...</option>
               {clinics.map(c => <option key={c} value={c}>{c}</option>)}
@@ -254,7 +254,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           </div>
 
           {errorMsg && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100">
+            <div className="p-3 bg-rose-950/40 text-rose-400 rounded-2xl text-xs font-bold border border-rose-900/30">
               {errorMsg}
             </div>
           )}
@@ -262,7 +262,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
           <button
             type="submit"
             disabled={submitting || !clinicSel}
-            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
           >
             {submitting ? 'Menghantar...' : 'Hantar Permohonan'}
           </button>
@@ -270,7 +270,7 @@ const UserSetupScreen = ({ hierarchy, user, handleLogout }) => {
 
         <button
           onClick={handleLogout}
-          className="w-full mt-3 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all"
+          className="w-full mt-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl transition-all"
         >
           Keluar Akaun
         </button>
@@ -335,26 +335,26 @@ const InputScreen = ({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sesi Panggilan</h2>
-              <p className="text-xs text-slate-500 font-bold uppercase mt-0.5 tracking-wider">
+              <h2 className="text-2xl font-black text-white tracking-tight">Sesi Panggilan</h2>
+              <p className="text-xs text-indigo-400 font-bold uppercase mt-0.5 tracking-wider">
                 {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
               </p>
             </div>
-            <button onClick={() => setCurrentView('login')} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all">
+            <button onClick={() => setCurrentView('login')} className="p-2 text-slate-400 hover:text-white bg-slate-850 hover:bg-slate-800 rounded-xl transition-all">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Negeri</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Negeri</label>
               <select
                 disabled={!isSuperadmin}
-                className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -368,10 +368,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Daerah</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Daerah</label>
               <select
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -384,10 +384,10 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Klinik Kesihatan</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Klinik Kesihatan</label>
               <select
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -397,9 +397,9 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Jabatan / Zon</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Jabatan / Zon</label>
               <select
-                className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -409,9 +409,9 @@ const InputScreen = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Bilik</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Bilik</label>
               <select
-                className="w-full p-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3.5 border border-slate-800 rounded-2xl bg-slate-950 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={localRoom}
                 onChange={(e) => setLocalRoom(e.target.value)}
               >
@@ -424,7 +424,7 @@ const InputScreen = ({
             <button
               disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
               onClick={() => setStep(2)}
-              className="w-full py-4 mt-4 bg-indigo-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+              className="w-full py-4 mt-4 bg-indigo-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
             >
               Mula Memanggil
             </button>
@@ -435,7 +435,7 @@ const InputScreen = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center p-4">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-sm mx-auto flex flex-col h-full bg-slate-900 border border-slate-800 rounded-[32px] p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -462,14 +462,14 @@ const InputScreen = ({
             <button
               key={num}
               onClick={() => setCurrentInput(prev => (prev.length < 4 ? prev + num : prev))}
-              className="bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-2xl py-5 text-2xl font-bold transition-all font-mono text-slate-100"
+              className="bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-2xl py-5 text-2xl font-bold transition-all font-mono text-slate-100 border border-slate-700/30"
             >
               {num}
             </button>
           ))}
           <button
             onClick={() => setCurrentInput('')}
-            className="bg-rose-950 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all"
+            className="bg-rose-950/80 hover:bg-rose-900 active:scale-95 text-rose-300 rounded-2xl py-5 text-lg font-bold transition-all border border-rose-900/40"
           >
             CLR
           </button>
@@ -481,7 +481,7 @@ const InputScreen = ({
           </button>
           <button
             onClick={() => setCurrentInput(prev => prev.slice(0, -1))}
-            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-2xl py-5 text-lg font-bold transition-all"
+            className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-2xl py-5 text-lg font-bold transition-all border border-slate-700/30"
           >
             DEL
           </button>
@@ -530,7 +530,7 @@ const OutputScreen = ({
   const [highlightedRoom, setHighlightedRoom] = useState(null);
   const videoRefs = useRef({});
 
-  // Use state-specific media list if configured, otherwise fall back to global DEFAULT_MEDIA
+  // Fetch pictures/videos specific to this Negeri. Fall back to Global media if empty
   const activeMediaPlaylist = (stateMedia && stateMedia[selectedState] && stateMedia[selectedState].length > 0)
     ? stateMedia[selectedState]
     : mediaList;
@@ -685,11 +685,11 @@ const OutputScreen = ({
 
     const getNum = (val) => {
       if (!val) return '';
-      return typeof val === 'object' ? val.number || '' : val;
+      return typeof val === 'object' ? val.number : val;
     };
     const getTs = (val) => {
       if (!val) return 0;
-      return typeof val === 'object' ? val.timestamp || 0 : 0;
+      return typeof val === 'object' ? val.timestamp : 0;
     };
 
     if (!previousQueues) {
@@ -794,10 +794,10 @@ const OutputScreen = ({
 
   if (!setupDone) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-800 p-8 rounded-[32px] shadow-2xl border border-slate-700 text-white">
-          <h2 className="text-2xl font-bold mb-2 text-center">Konfigurasi TV Display</h2>
-          <p className="text-xs text-slate-400 text-center uppercase tracking-wider mb-6">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-white">
+          <h2 className="text-2xl font-bold mb-2 text-center text-white">Konfigurasi TV Display</h2>
+          <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6">
             {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
           </p>
 
@@ -806,7 +806,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
               <select
                 disabled={!isSuperadmin}
-                className="w-full p-4 border border-slate-600 rounded-2xl bg-slate-900 text-white disabled:opacity-50"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value);
@@ -823,7 +823,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Daerah</label>
               <select
                 disabled={!isSuperadmin || !selectedState}
-                className="w-full p-4 border border-slate-600 rounded-2xl bg-slate-900 text-white disabled:opacity-50"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
@@ -839,7 +839,7 @@ const OutputScreen = ({
               <label className="block text-sm font-semibold text-slate-400 mb-2">Klinik Kesihatan</label>
               <select
                 disabled={!isSuperadmin || !selectedDistrict}
-                className="w-full p-4 border border-slate-600 rounded-2xl bg-slate-900 text-white disabled:opacity-50"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white disabled:opacity-40"
                 value={selectedClinic}
                 onChange={(e) => setSelectedClinic(e.target.value)}
               >
@@ -851,7 +851,7 @@ const OutputScreen = ({
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
               <select
-                className="w-full p-4 border border-slate-600 rounded-2xl bg-slate-900 text-white"
+                className="w-full p-4 border border-slate-800 rounded-2xl bg-slate-950 text-white"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
@@ -863,14 +863,14 @@ const OutputScreen = ({
             <div className="pt-4 flex space-x-3">
               <button
                 onClick={() => setCurrentView('login')}
-                className="flex-1 py-4 bg-slate-700 text-white font-bold rounded-2xl hover:bg-slate-600"
+                className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-700 transition-colors"
               >
                 Kembali
               </button>
               <button
                 disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center"
+                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center transition-colors"
               >
                 <Play className="h-5 w-5 mr-2" /> Mula TV
               </button>
@@ -990,63 +990,63 @@ const AdminPanel = ({
 }) => {
   const adminClinics = userPermissions?.[user.uid]?.managedClinics || [];
 
-  // Filter requests that match the clinics assigned to this specific admin
+  // Filter requests that are pending AND belong to the clinics this Admin is authorized to manage
   const pendingRequests = Object.values(userPermissions || {}).filter(u => {
     return u.status === 'pending' && adminClinics.includes(u.assignedClinic);
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
-      <header className="bg-white border-b px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+    <div className="min-h-screen bg-slate-950 flex flex-col text-white">
+      <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Portal Pentadbir (Admin)</h1>
-          <p className="text-sm text-slate-500">Kelulusan Akses untuk Klinik di bawah Pengurusan Anda</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">Portal Pentadbir (Admin)</h1>
+          <p className="text-sm text-slate-400">Kelulusan Akses untuk Klinik di bawah Pengurusan Anda</p>
         </div>
-        <button onClick={() => setCurrentView('login')} className="px-5 py-2.5 text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+        <button onClick={() => setCurrentView('login')} className="px-5 py-2.5 text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all">
           Kembali
         </button>
       </header>
 
       <main className="flex-1 p-6 max-w-4xl mx-auto w-full space-y-8">
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-2">Klinik di bawah Kawalan Anda:</h2>
+        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl">
+          <h2 className="text-lg font-bold text-white mb-2">Klinik di bawah Kawalan Anda:</h2>
           <div className="flex flex-wrap gap-2">
             {adminClinics.map((clinic, i) => (
-              <span key={i} className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100">
+              <span key={i} className="px-3.5 py-1.5 bg-indigo-950/60 text-indigo-400 text-xs font-bold rounded-full border border-indigo-900/30">
                 {clinic}
               </span>
             ))}
             {adminClinics.length === 0 && (
-              <span className="text-sm text-amber-600 font-medium">Tiada klinik yang diberikan oleh Superadmin lagi.</span>
+              <span className="text-sm text-amber-500 font-medium">Tiada klinik yang diberikan oleh Superadmin lagi.</span>
             )}
           </div>
         </div>
 
-        <section className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Users className="h-6 w-6 text-indigo-600" />
+        <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 overflow-hidden">
+          <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Users className="h-6 w-6 text-indigo-400" />
               <span>Permohonan Akses Kakitangan</span>
             </h2>
-            <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold font-mono">
+            <span className="bg-rose-950 text-rose-400 px-3 py-1 rounded-full text-xs font-bold font-mono border border-rose-900/20">
               {pendingRequests.length} permohonan
             </span>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-800">
             {pendingRequests.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 font-medium">
+              <div className="p-12 text-center text-slate-500 font-medium">
                 Tiada permohonan akses baru untuk klinik anda buat masa ini.
               </div>
             ) : (
               pendingRequests.map(req => (
-                <div key={req.uid} className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-50/30 transition-all">
+                <div key={req.uid} className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-850/30 transition-all">
                   <div className="flex items-center gap-4">
-                    <img src={req.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'} alt="Profile" className="h-12 w-12 rounded-full border shadow-sm" />
+                    <img src={req.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'} alt="Profile" className="h-12 w-12 rounded-full border border-slate-800 shadow-sm" />
                     <div>
-                      <p className="font-bold text-slate-900 text-base">{req.displayName}</p>
-                      <p className="text-xs text-slate-400 font-semibold">{req.email}</p>
-                      <p className="text-xs text-indigo-600 font-bold mt-1">
+                      <p className="font-bold text-white text-base">{req.displayName}</p>
+                      <p className="text-xs text-slate-500 font-semibold">{req.email}</p>
+                      <p className="text-xs text-indigo-400 font-bold mt-1">
                         KK: {req.assignedClinic} ({req.assignedDistrict}, {req.assignedState})
                       </p>
                     </div>
@@ -1054,13 +1054,13 @@ const AdminPanel = ({
                   <div className="flex gap-2 w-full md:w-auto">
                     <button
                       onClick={() => updateUserStatus(req.uid, 'rejected')}
-                      className="flex-1 md:flex-none px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 text-sm font-bold rounded-xl transition-all"
+                      className="flex-1 md:flex-none px-4 py-2 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 text-sm font-bold rounded-xl border border-rose-900/30 transition-all"
                     >
                       Tolak
                     </button>
                     <button
                       onClick={() => updateUserStatus(req.uid, 'approved')}
-                      className="flex-1 md:flex-none px-5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-100"
+                      className="flex-1 md:flex-none px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-500 text-sm font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20"
                     >
                       Sahkan Permohonan
                     </button>
@@ -1089,7 +1089,6 @@ export default function App() {
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaType, setNewMediaType] = useState('image');
 
-  // State-specific Media playlist setup states
   const [activeMediaState, setActiveMediaState] = useState('');
 
   const [newHierarchyState, setNewHierarchyState] = useState('');
@@ -1102,7 +1101,6 @@ export default function App() {
   const [selectedClinic, setSelectedClinic] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
 
-  // Bypass Generator States
   const [genState, setGenState] = useState('');
   const [genDistrict, setGenDistrict] = useState('');
   const [genClinic, setGenClinic] = useState('');
@@ -1397,7 +1395,6 @@ export default function App() {
     const cleanUrl = newMediaUrl.trim();
 
     if (activeMediaState) {
-      // Adding State Specific media link
       const updatedStateMedia = { ...stateMedia };
       if (!updatedStateMedia[activeMediaState]) {
         updatedStateMedia[activeMediaState] = [];
@@ -1407,7 +1404,6 @@ export default function App() {
       setNewMediaUrl('');
       await setDoc(doc(db, 'qms', 'config'), { stateMedia: updatedStateMedia }, { merge: true });
     } else {
-      // Adding Global media link
       const updatedMedia = [...mediaList, { url: cleanUrl, type: newMediaType }];
       setMediaList(updatedMedia);
       setNewMediaUrl('');
@@ -1496,27 +1492,27 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin h-10 w-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   if (!user && getQueryParam('mode') !== 'tv') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-[32px] shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-300">
-          <div className="mx-auto h-20 w-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-8 bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center animate-in fade-in zoom-in duration-300">
+          <div className="mx-auto h-20 w-20 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-6">
             <svg className="h-10 w-10 text-white animate-pulse" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">PKD QMS Gateway</h2>
-          <p className="mt-2 text-sm text-slate-500 mb-8 font-semibold">Sistem Pengurusan Giliran Bersepadu & Kawalan Akses</p>
+          <h2 className="text-3xl font-black text-white tracking-tight leading-none">PKD QMS Gateway</h2>
+          <p className="mt-2 text-sm text-slate-400 mb-8 font-semibold">Sistem Pengurusan Giliran Bersepadu & Kawalan Akses</p>
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 py-4 bg-white border-2 border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-indigo-400 transition-all shadow-sm group"
+            className="w-full flex items-center justify-center space-x-3 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl hover:bg-slate-850 hover:border-indigo-500 transition-all shadow-sm group"
           >
             <svg className="w-6 h-6 group-hover:scale-105 transition-transform" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -1524,7 +1520,7 @@ export default function App() {
               <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
               <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
             </svg>
-            <span className="text-slate-700 font-extrabold text-base">Log Masuk dengan Google</span>
+            <span className="text-white font-extrabold text-base">Log Masuk dengan Google</span>
           </button>
         </div>
         <Modal {...modalConfig} />
@@ -1535,7 +1531,6 @@ export default function App() {
   const isSuperadmin = user?.email === 'dr.narish@gmail.com';
   const myPermission = userPermissions ? userPermissions[user.uid] : null;
 
-  // Render Form if user has logged in but has not defined their Location profile
   if (user && !isSuperadmin && !myPermission) {
     return (
       <UserSetupScreen
@@ -1546,29 +1541,28 @@ export default function App() {
     );
   }
 
-  // Render Access Block Screen if pending approval
   if (user && !isSuperadmin && myPermission && myPermission.status !== 'approved') {
     const isRejected = myPermission?.status === 'rejected';
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-[32px] shadow-2xl border border-slate-100 text-center space-y-6">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 p-8 rounded-[32px] shadow-2xl border border-slate-800 text-center space-y-6">
           <div className="mx-auto h-20 w-20 rounded-full flex items-center justify-center shadow-lg animate-bounce">
             {isRejected ? (
-              <div className="h-full w-full bg-red-100 rounded-full flex items-center justify-center text-red-600">
+              <div className="h-full w-full bg-rose-950 text-rose-500 rounded-full flex items-center justify-center border border-rose-900/30">
                 <ShieldAlert className="h-10 w-10" />
               </div>
             ) : (
-              <div className="h-full w-full bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+              <div className="h-full w-full bg-amber-950 text-amber-500 rounded-full flex items-center justify-center border border-amber-900/30">
                 <Clock className="h-10 w-10" />
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800">
+            <h2 className="text-2xl font-bold text-white">
               {isRejected ? "Akses Ditolak" : "Akses Menunggu Kelulusan"}
             </h2>
-            <p className="text-slate-500 text-sm font-medium leading-relaxed">
+            <p className="text-slate-400 text-sm font-medium leading-relaxed">
               {isRejected
                 ? "Maaf, permohonan akses anda ke sistem QMS telah ditolak. Sila hubungi pentadbir sistem untuk maklumat lanjut."
                 : "Akaun anda sedia didaftarkan! Sila hubungi Admin klinik anda atau Superadmin untuk kelulusan kemasukan."
@@ -1576,18 +1570,18 @@ export default function App() {
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border flex items-center space-x-3 text-left">
-            <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border shadow-sm" />
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center space-x-3 text-left">
+            <img src={user.photoURL} alt="Profile" className="h-12 w-12 rounded-full border border-slate-800 shadow-sm" />
             <div className="overflow-hidden">
-              <p className="font-bold text-slate-800 truncate">{user.displayName}</p>
-              <p className="text-xs text-slate-400 truncate font-semibold">{user.email}</p>
-              <p className="text-xs text-indigo-600 font-bold mt-0.5">KK: {myPermission.assignedClinic}</p>
+              <p className="font-bold text-white truncate">{user.displayName}</p>
+              <p className="text-xs text-slate-500 truncate font-semibold">{user.email}</p>
+              <p className="text-xs text-indigo-400 font-bold mt-0.5">KK: {myPermission.assignedClinic}</p>
             </div>
           </div>
 
           <button
             onClick={handleLogout}
-            className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-colors"
+            className="w-full py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-700 transition-colors"
           >
             Log Keluar dari Akaun
           </button>
@@ -1599,35 +1593,35 @@ export default function App() {
   if (currentView === 'login' && user) {
     const isAdmin = myPermission?.role === 'admin';
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6 animate-in fade-in duration-200">
-          <div className="text-center bg-white p-8 rounded-[32px] shadow-xl border border-slate-100">
+          <div className="text-center bg-slate-900 p-8 rounded-[32px] shadow-xl border border-slate-800">
             <div className="mx-auto h-16 w-16 mb-4 relative">
               {user.photoURL ? (
-                <img src={user.photoURL} alt="Profil" className="h-full w-full rounded-full shadow-md" />
+                <img src={user.photoURL} alt="Profil" className="h-full w-full rounded-full shadow-md border border-slate-700" />
               ) : (
                 <div className="h-full w-full bg-indigo-600 rounded-full flex items-center justify-center shadow-md">
                   <Users className="h-8 w-8 text-white" />
                 </div>
               )}
-              <span className={`absolute bottom-0 right-0 h-4.5 w-4.5 rounded-full border-2 border-white ${isSuperadmin ? 'bg-purple-500' : isAdmin ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+              <span className={`absolute bottom-0 right-0 h-4.5 w-4.5 rounded-full border-2 border-slate-900 ${isSuperadmin ? 'bg-purple-500' : isAdmin ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 leading-tight">Hai, {user.displayName || 'Kakitangan'}</h2>
+            <h2 className="text-2xl font-black text-white leading-tight">Hai, {user.displayName || 'Kakitangan'}</h2>
             <p className="text-sm font-bold text-slate-400 mt-1">{user.email}</p>
 
             <div className="flex justify-center gap-2 mt-3">
               {isSuperadmin ? (
-                <span className="inline-flex items-center space-x-1.5 bg-purple-50 text-purple-800 px-3 py-1 rounded-full text-xs font-black border border-purple-100">
+                <span className="inline-flex items-center space-x-1.5 bg-purple-950/60 text-purple-400 px-3 py-1 rounded-full text-xs font-black border border-purple-900/30">
                   <Shield className="h-3.5 w-3.5" />
                   <span>Superadmin</span>
                 </span>
               ) : isAdmin ? (
-                <span className="inline-flex items-center space-x-1.5 bg-indigo-50 text-indigo-800 px-3 py-1 rounded-full text-xs font-black border border-indigo-100">
+                <span className="inline-flex items-center space-x-1.5 bg-indigo-950/60 text-indigo-400 px-3 py-1 rounded-full text-xs font-black border border-indigo-900/30">
                   <Sliders className="h-3.5 w-3.5" />
                   <span>Admin Klinik</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full text-xs font-black border border-emerald-100">
+                <span className="inline-flex items-center space-x-1.5 bg-emerald-950/60 text-emerald-400 px-3 py-1 rounded-full text-xs font-black border border-emerald-900/30">
                   <UserCheck className="h-3.5 w-3.5" />
                   <span>KK: {myPermission?.assignedClinic}</span>
                 </span>
@@ -1636,7 +1630,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="mt-5 text-xs font-black px-4 py-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors"
+              className="mt-5 text-xs font-black px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-rose-950 hover:text-rose-400 border border-slate-700/50 transition-all"
             >
               Log Keluar
             </button>
@@ -1646,69 +1640,69 @@ export default function App() {
             {isSuperadmin && (
               <button
                 onClick={() => setCurrentView('admin')}
-                className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-purple-500 hover:shadow-md transition-all group"
+                className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-purple-500 hover:shadow-md transition-all group"
               >
                 <div className="flex items-center">
-                  <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                  <div className="h-12 w-12 bg-purple-950 text-purple-400 rounded-xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all border border-purple-900/20">
                     <Settings className="h-6 w-6" />
                   </div>
                   <div className="ml-4 text-left">
-                    <p className="text-lg font-bold text-slate-900">Portal Superadmin</p>
-                    <p className="text-sm text-slate-500">Konfigurasi & Kelulusan Global</p>
+                    <p className="text-lg font-bold text-white">Portal Superadmin</p>
+                    <p className="text-sm text-slate-400">Konfigurasi & Kelulusan Global</p>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-purple-500" />
+                <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-purple-500" />
               </button>
             )}
 
             {(isAdmin || isSuperadmin) && (
               <button
                 onClick={() => setCurrentView('adminPanel')}
-                className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-indigo-500 hover:shadow-md transition-all group"
+                className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-indigo-500 hover:shadow-md transition-all group"
               >
                 <div className="flex items-center">
-                  <div className="h-12 w-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <div className="h-12 w-12 bg-indigo-950 text-indigo-400 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all border border-indigo-900/20">
                     <Shield className="h-6 w-6" />
                   </div>
                   <div className="ml-4 text-left">
-                    <p className="text-lg font-bold text-slate-900">Portal Pentadbir (Admin)</p>
-                    <p className="text-sm text-slate-500">Urus permohonan klinik bertugas</p>
+                    <p className="text-lg font-bold text-white">Portal Pentadbir (Admin)</p>
+                    <p className="text-sm text-slate-400">Urus permohonan klinik bertugas</p>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-500" />
+                <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-indigo-500" />
               </button>
             )}
 
             <button
               onClick={() => setCurrentView('input')}
-              className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
+              className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-blue-500 hover:shadow-md transition-all group"
             >
               <div className="flex items-center">
-                <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                <div className="h-12 w-12 bg-blue-950 text-blue-400 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all border border-blue-900/20">
                   <Smartphone className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
-                  <p className="text-lg font-bold text-slate-900">Portal Staf (Input)</p>
-                  <p className="text-sm text-slate-500">Panggil nombor giliran pesakit</p>
+                  <p className="text-lg font-bold text-white">Portal Staf (Input)</p>
+                  <p className="text-sm text-slate-400">Panggil nombor giliran pesakit</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-500" />
+              <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-blue-500" />
             </button>
 
             <button
               onClick={() => setCurrentView('output')}
-              className="w-full flex items-center justify-between p-5 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-emerald-500 hover:shadow-md transition-all group"
+              className="w-full flex items-center justify-between p-5 bg-slate-900 border-2 border-slate-800 rounded-2xl shadow-sm hover:border-emerald-500 hover:shadow-md transition-all group"
             >
               <div className="flex items-center">
-                <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                <div className="h-12 w-12 bg-emerald-950 text-emerald-400 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all border border-emerald-900/20">
                   <Monitor className="h-6 w-6" />
                 </div>
                 <div className="ml-4 text-left">
-                  <p className="text-lg font-bold text-slate-900">Skrin TV (Output)</p>
-                  <p className="text-sm text-slate-500">Paparan ruang menunggu pesakit</p>
+                  <p className="text-lg font-bold text-white">Skrin TV (Output)</p>
+                  <p className="text-sm text-slate-400">Paparan ruang menunggu pesakit</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-emerald-500" />
+              <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-emerald-500" />
             </button>
           </div>
         </div>
@@ -1732,13 +1726,13 @@ export default function App() {
       )}
 
       {currentView === 'admin' && (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
-          <header className="bg-white border-b px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <div className="min-h-screen bg-slate-950 flex flex-col text-white">
+          <header className="bg-slate-900 border-b border-slate-800 px-8 py-5 flex justify-between items-center sticky top-0 z-10 shadow-lg">
             <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Dashboard Superadmin</h1>
-              <p className="text-sm text-slate-500">Konfigurasi Wilayah, Playlist & Kawalan Kakitangan</p>
+              <h1 className="text-2xl font-black text-white tracking-tight">Dashboard Superadmin</h1>
+              <p className="text-sm text-slate-400">Konfigurasi Wilayah, Playlist & Kawalan Kakitangan</p>
             </div>
-            <button onClick={() => setCurrentView('login')} className="px-5 py-2.5 text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+            <button onClick={() => setCurrentView('login')} className="px-5 py-2.5 text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-slate-700/50">
               Kembali
             </button>
           </header>
@@ -1746,18 +1740,18 @@ export default function App() {
           <main className="flex-1 p-6 max-w-6xl mx-auto w-full space-y-8">
 
             {/* 1. Pengurusan Hak Akses Kakitangan */}
-            <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 space-y-6">
+            <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <Users className="h-7 w-7 text-indigo-600 mr-2" />
+                  <Users className="h-7 w-7 text-indigo-400 mr-2" />
                   <h2 className="text-2xl font-bold tracking-tight">1. Pengurusan Hak Akses Kakitangan</h2>
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border border-slate-100">
+              <div className="overflow-x-auto rounded-2xl border border-slate-800">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b text-xs uppercase tracking-wider text-slate-400 bg-slate-50/50">
+                    <tr className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400 bg-slate-950/50">
                       <th className="p-4 font-bold">Kakitangan</th>
                       <th className="p-4 font-bold">Status Akses</th>
                       <th className="p-4 font-bold">Peranan</th>
@@ -1768,7 +1762,7 @@ export default function App() {
                   <tbody>
                     {Object.values(userPermissions || {}).length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="p-8 text-center text-slate-400 font-medium">Tiada pendaftaran kakitangan dikesan.</td>
+                        <td colSpan="5" className="p-8 text-center text-slate-500 font-medium">Tiada pendaftaran kakitangan dikesan.</td>
                       </tr>
                     ) : (
                       Object.values(userPermissions || {}).map((u) => {
@@ -1778,23 +1772,22 @@ export default function App() {
                         const districtClinics = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
                         const userRole = u.role || 'staff';
 
-                        // Gather all clinics inside the assigned state & district to present to Admin assignment
                         const allClinicsInDistrict = (userState && userDistrict) ? (hierarchy[userState]?.[userDistrict] || []) : [];
 
                         return (
-                          <tr key={u.uid} className="border-b last:border-0 hover:bg-slate-50/50 transition-all">
+                          <tr key={u.uid} className="border-b border-slate-850 last:border-0 hover:bg-slate-850/20 transition-all">
                             <td className="p-4 flex items-center space-x-3">
-                              <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'} alt="Profile" className="h-10 w-10 rounded-full border shadow-sm" />
+                              <img src={u.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'} alt="Profile" className="h-10 w-10 rounded-full border border-slate-800 shadow-sm" />
                               <div className="overflow-hidden w-40 md:w-56">
-                                <p className="font-bold text-slate-800 truncate text-sm">{u.displayName}</p>
-                                <p className="text-xs text-slate-400 truncate font-semibold">{u.email}</p>
+                                <p className="font-bold text-white truncate text-sm">{u.displayName}</p>
+                                <p className="text-xs text-slate-500 truncate font-semibold">{u.email}</p>
                               </div>
                             </td>
                             <td className="p-4">
                               <select
-                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                    u.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                      'bg-amber-50 text-amber-700 border-amber-200'
+                                className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none bg-slate-950 ${u.status === 'approved' ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900/30' :
+                                    u.status === 'rejected' ? 'bg-rose-950/40 text-rose-400 border-rose-900/30' :
+                                      'bg-amber-950/40 text-amber-400 border-amber-900/30'
                                   }`}
                                 value={u.status}
                                 onChange={(e) => updateUserStatus(u.uid, e.target.value)}
@@ -1806,7 +1799,7 @@ export default function App() {
                             </td>
                             <td className="p-4">
                               <select
-                                className="text-xs font-bold py-1.5 px-3 rounded-xl border outline-none bg-white text-slate-700"
+                                className="text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-800 outline-none bg-slate-950 text-slate-200"
                                 value={userRole}
                                 onChange={(e) => updateUserRole(u.uid, e.target.value)}
                               >
@@ -1815,10 +1808,9 @@ export default function App() {
                               </select>
                             </td>
                             <td className="p-4 space-y-2">
-                              {/* Standard Location configuration drop-downs */}
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <select
-                                  className="text-xs p-2 border rounded-xl bg-white outline-none w-32 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none w-32 font-semibold"
                                   value={userState}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedState', e.target.value);
@@ -1832,7 +1824,7 @@ export default function App() {
 
                                 <select
                                   disabled={!userState}
-                                  className="text-xs p-2 border rounded-xl bg-white outline-none disabled:opacity-50 w-32 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none disabled:opacity-40 w-32 font-semibold"
                                   value={userDistrict}
                                   onChange={(e) => {
                                     updateUserAssignment(u.uid, 'assignedDistrict', e.target.value);
@@ -1845,7 +1837,7 @@ export default function App() {
 
                                 <select
                                   disabled={!userDistrict}
-                                  className="text-xs p-2 border rounded-xl bg-white outline-none disabled:opacity-50 w-44 font-semibold"
+                                  className="text-xs p-2 border border-slate-800 rounded-xl bg-slate-950 text-white outline-none disabled:opacity-40 w-44 font-semibold"
                                   value={u.assignedClinic || ''}
                                   onChange={(e) => updateUserAssignment(u.uid, 'assignedClinic', e.target.value)}
                                 >
@@ -1854,19 +1846,19 @@ export default function App() {
                                 </select>
                               </div>
 
-                              {/* If role is Admin, show list of clinics in district they can control */}
+                              {/* Multi-Clinic Authorization selection panel for users designated as Admin */}
                               {userRole === 'admin' && userDistrict && (
-                                <div className="mt-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-2">
-                                  <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Klinik Kawalan Admin ({userDistrict}):</p>
+                                <div className="mt-2 p-3 bg-indigo-950/40 border border-indigo-900/30 rounded-xl space-y-2">
+                                  <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Klinik Kawalan Admin ({userDistrict}):</p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                     {allClinicsInDistrict.map(clinic => {
                                       const isChecked = (u.managedClinics || []).includes(clinic);
                                       return (
-                                        <label key={clinic} className="flex items-center space-x-2 text-xs text-slate-700 font-semibold cursor-pointer">
+                                        <label key={clinic} className="flex items-center space-x-2 text-xs text-slate-300 font-semibold cursor-pointer">
                                           <input
                                             type="checkbox"
                                             checked={isChecked}
-                                            className="rounded text-indigo-600 focus:ring-indigo-500"
+                                            className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
                                             onChange={(e) => updateUserManagedClinics(u.uid, clinic, e.target.checked)}
                                           />
                                           <span>{clinic}</span>
@@ -1880,7 +1872,7 @@ export default function App() {
                             <td className="p-4 text-right">
                               <button
                                 onClick={() => deleteUserRecord(u.uid)}
-                                className="text-slate-400 hover:text-rose-500 transition-colors"
+                                className="text-slate-500 hover:text-rose-500 transition-colors"
                               >
                                 <Trash2 className="h-5 w-5" />
                               </button>
@@ -1895,19 +1887,19 @@ export default function App() {
             </section>
 
             {/* 2. Pengurusan Struktur Regional (Klinik) */}
-            <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 space-y-6">
+            <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center mb-2">
-                <Map className="h-7 w-7 text-purple-600 mr-2" />
+                <Map className="h-7 w-7 text-purple-400 mr-2" />
                 <h2 className="text-2xl font-bold tracking-tight">2. Pengurusan Struktur Regional (Klinik)</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 {/* STATE BOX */}
-                <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/60 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-400">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Negeri</span>
-                    <span className="bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-black">{Object.keys(hierarchy).length}</span>
+                    <span className="bg-purple-950 text-purple-400 px-2.5 py-0.5 rounded-full text-xs font-black border border-purple-900/30">{Object.keys(hierarchy).length}</span>
                   </h3>
 
                   <div className="flex space-x-2 mb-3">
@@ -1916,9 +1908,9 @@ export default function App() {
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
                       onChange={(e) => setNewHierarchyState(e.target.value)}
-                      className="border border-slate-200 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-slate-800 bg-white"
+                      className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-white bg-slate-950"
                     />
-                    <button onClick={addState} className="bg-purple-600 hover:bg-purple-700 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
+                    <button onClick={addState} className="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                       <Plus className="h-5 w-5" />
                     </button>
                   </div>
@@ -1931,16 +1923,16 @@ export default function App() {
                           setAdminSelectedState(stateName);
                           setAdminSelectedDistrict('');
                         }}
-                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-100/60 border-purple-500 shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-100'
+                        className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedState === stateName ? 'bg-purple-950/40 border-purple-500 shadow-sm' : 'bg-slate-950 border-slate-850 hover:bg-slate-800'
                           }`}
                       >
-                        <span className="font-bold text-slate-800 text-sm">{stateName}</span>
+                        <span className="font-bold text-white text-sm">{stateName}</span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             removeState(stateName);
                           }}
-                          className="text-slate-400 hover:text-rose-500 transition-colors"
+                          className="text-slate-500 hover:text-rose-500 transition-colors"
                         >
                           <XCircle className="h-4.5 w-4.5" />
                         </button>
@@ -1950,11 +1942,11 @@ export default function App() {
                 </div>
 
                 {/* DISTRICT BOX */}
-                <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/60 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-400">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Daerah</span>
                     {adminSelectedState && (
-                      <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-black">
+                      <span className="bg-blue-950 text-blue-400 px-2.5 py-0.5 rounded-full text-xs font-black border border-blue-900/30">
                         {Object.keys(hierarchy[adminSelectedState] || {}).length}
                       </span>
                     )}
@@ -1968,9 +1960,9 @@ export default function App() {
                           placeholder={`Daerah Baru...`}
                           value={newHierarchyDistrict}
                           onChange={(e) => setNewHierarchyDistrict(e.target.value)}
-                          className="border border-slate-200 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-slate-800 bg-white"
+                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-white bg-slate-950"
                         />
-                        <button onClick={addDistrict} className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
+                        <button onClick={addDistrict} className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                           <Plus className="h-5 w-5" />
                         </button>
                       </div>
@@ -1980,16 +1972,16 @@ export default function App() {
                           <div
                             key={distName}
                             onClick={() => setAdminSelectedDistrict(distName)}
-                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-100/60 border-blue-500 shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-100'
+                            className={`p-3 border rounded-xl flex justify-between items-center cursor-pointer transition-all ${adminSelectedDistrict === distName ? 'bg-blue-950/40 border-blue-500 shadow-sm' : 'bg-slate-950 border-slate-850 hover:bg-slate-800'
                               }`}
                           >
-                            <span className="font-bold text-slate-800 text-sm">{distName}</span>
+                            <span className="font-bold text-white text-sm">{distName}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeDistrict(distName);
                               }}
-                              className="text-slate-400 hover:text-rose-500 transition-colors"
+                              className="text-slate-500 hover:text-rose-500 transition-colors"
                             >
                               <XCircle className="h-4.5 w-4.5" />
                             </button>
@@ -1998,19 +1990,19 @@ export default function App() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs text-center font-semibold">
-                      <MapPin className="h-8 w-8 mb-2 text-slate-300" />
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-xs text-center font-semibold">
+                      <MapPin className="h-8 w-8 mb-2 text-slate-600" />
                       Sila pilih Negeri dahulu untuk menguruskan Daerah.
                     </div>
                   )}
                 </div>
 
                 {/* CLINIC BOX */}
-                <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/60 flex flex-col h-[400px]">
-                  <h3 className="font-bold text-slate-800 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-400">
+                <div className="border border-slate-800 rounded-2xl p-5 bg-slate-950/40 flex flex-col h-[400px]">
+                  <h3 className="font-bold text-slate-300 mb-3 flex justify-between items-center text-xs uppercase tracking-wider text-slate-500">
                     <span>Klinik Kesihatan</span>
                     {adminSelectedState && adminSelectedDistrict && (
-                      <span className="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-black">
+                      <span className="bg-emerald-950 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-black border border-emerald-900/30">
                         {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).length}
                       </span>
                     )}
@@ -2024,9 +2016,9 @@ export default function App() {
                           placeholder={`Klinik baru...`}
                           value={newClinicName}
                           onChange={(e) => setNewClinicName(e.target.value)}
-                          className="border border-slate-200 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800 bg-white"
+                          className="border border-slate-800 p-2.5 rounded-xl text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-white bg-slate-950"
                         />
-                        <button onClick={addClinic} className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
+                        <button onClick={addClinic} className="bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 rounded-xl text-sm font-bold transition-colors">
                           <Plus className="h-5 w-5" />
                         </button>
                       </div>
@@ -2035,12 +2027,12 @@ export default function App() {
                         {(hierarchy[adminSelectedState]?.[adminSelectedDistrict] || []).map(clinic => (
                           <div
                             key={clinic}
-                            className="p-3 border border-slate-100 rounded-xl flex justify-between items-center bg-white"
+                            className="p-3 border border-slate-800 rounded-xl flex justify-between items-center bg-slate-950"
                           >
-                            <span className="font-bold text-slate-850 text-xs">{clinic}</span>
+                            <span className="font-bold text-white text-xs">{clinic}</span>
                             <button
                               onClick={() => removeClinic(clinic)}
-                              className="text-slate-400 hover:text-rose-500 transition-colors"
+                              className="text-slate-500 hover:text-rose-500 transition-colors"
                             >
                               <Trash2 className="h-4.5 w-4.5" />
                             </button>
@@ -2049,8 +2041,8 @@ export default function App() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs text-center font-semibold">
-                      <Building2 className="h-8 w-8 mb-2 text-slate-300" />
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-xs text-center font-semibold">
+                      <Building2 className="h-8 w-8 mb-2 text-slate-600" />
                       Sila pilih Daerah dahulu untuk menguruskan Klinik.
                     </div>
                   )}
@@ -2060,10 +2052,10 @@ export default function App() {
             </section>
 
             {/* 3. Jabatan / Zon (Zoning) */}
-            <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
+            <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center">
-                  <Settings className="h-7 w-7 text-orange-600 mr-2" />
+                  <Settings className="h-7 w-7 text-orange-400 mr-2" />
                   <h2 className="text-2xl font-bold tracking-tight">3. Jabatan / Zon (Zoning)</h2>
                 </div>
                 <div className="flex space-x-2">
@@ -2072,16 +2064,16 @@ export default function App() {
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    className="border border-slate-200 p-2.5 rounded-xl text-sm w-48 focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold text-slate-800 bg-white"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold text-white bg-slate-950"
                   />
                   <button onClick={addDepartment} className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
                 {departments.map((dept, idx) => (
-                  <div key={idx} className="px-4 py-2 border border-slate-100 rounded-2xl flex items-center bg-slate-50/50 shadow-sm space-x-3 text-slate-800">
-                    <span className="font-bold text-slate-700 text-sm">{dept}</span>
-                    <button onClick={() => removeDepartment(dept)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                  <div key={idx} className="px-4 py-2 border border-slate-800 rounded-2xl flex items-center bg-slate-950/50 shadow-sm space-x-3 text-white">
+                    <span className="font-bold text-slate-300 text-sm">{dept}</span>
+                    <button onClick={() => removeDepartment(dept)} className="text-slate-500 hover:text-rose-500 transition-colors">
                       <XCircle className="h-4.5 w-4.5" />
                     </button>
                   </div>
@@ -2089,11 +2081,11 @@ export default function App() {
               </div>
             </section>
 
-            {/* 4. TV Media Playlist (State-Specific Support Added) */}
-            <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
+            {/* 4. TV Media Playlist */}
+            <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8">
               <div className="flex flex-col xl:flex-row justify-between gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <Monitor className="h-7 w-7 text-emerald-600 shrink-0" />
+                  <Monitor className="h-7 w-7 text-emerald-400 shrink-0" />
                   <div>
                     <h2 className="text-2xl font-bold tracking-tight">4. TV Media Playlist</h2>
                     <p className="text-xs text-slate-400 font-semibold">Tentukan fail media mengikut Negeri yang terpilih</p>
@@ -2102,7 +2094,7 @@ export default function App() {
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <select
-                    className="border border-slate-200 p-2.5 rounded-xl text-sm bg-slate-50 font-bold text-indigo-700 focus:outline-none"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-950 font-bold text-indigo-400 focus:outline-none"
                     value={activeMediaState}
                     onChange={(e) => setActiveMediaState(e.target.value)}
                   >
@@ -2113,7 +2105,7 @@ export default function App() {
                   <select
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
-                    className="border border-slate-200 p-2.5 rounded-xl text-sm bg-slate-50 font-bold"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm bg-slate-950 font-bold text-white"
                   >
                     <option value="image">Gambar</option>
                     <option value="video">Video</option>
@@ -2124,32 +2116,32 @@ export default function App() {
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
                     onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="border border-slate-200 p-2.5 rounded-xl text-sm w-48 sm:w-64 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 bg-white"
+                    className="border border-slate-800 p-2.5 rounded-xl text-sm w-48 sm:w-64 focus:ring-2 focus:ring-emerald-500 outline-none text-white bg-slate-950"
                   />
-                  <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">Tambah</button>
+                  <button onClick={addMedia} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">Tambah</button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mb-4">
-                  <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+                <div className="p-3 bg-slate-950 border border-slate-850 rounded-xl mb-4">
+                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                     Sedang Memaparkan: {activeMediaState ? `Playlist Negeri ${activeMediaState}` : 'Playlist Global (Default)'}
                   </span>
                 </div>
 
                 {((activeMediaState ? (stateMedia[activeMediaState] || []) : mediaList)).map((media, idx) => (
-                  <div key={idx} className="p-4 border border-slate-100 rounded-2xl flex justify-between items-center bg-white hover:bg-slate-50 transition-colors">
+                  <div key={idx} className="p-4 border border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950 hover:bg-slate-850 transition-colors">
                     <div className="flex items-center space-x-3 overflow-hidden">
-                      {media.type === 'video' ? <Film className="h-5 w-5 text-indigo-600 shrink-0" /> : <ImageIcon className="h-5 w-5 text-emerald-600 shrink-0" />}
-                      <span className="font-semibold text-slate-700 truncate text-sm">{media.url}</span>
+                      {media.type === 'video' ? <Film className="h-5 w-5 text-indigo-400 shrink-0" /> : <ImageIcon className="h-5 w-5 text-emerald-400 shrink-0" />}
+                      <span className="font-semibold text-slate-300 truncate text-sm">{media.url}</span>
                     </div>
-                    <button onClick={() => removeMedia(idx)} className="text-slate-400 hover:text-rose-500 transition-colors ml-4 shrink-0">
+                    <button onClick={() => removeMedia(idx)} className="text-slate-500 hover:text-rose-500 transition-colors ml-4 shrink-0">
                       <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 ))}
                 {((activeMediaState ? (stateMedia[activeMediaState] || []) : mediaList)).length === 0 && (
-                  <div className="p-8 text-center text-slate-400 font-medium border border-dashed rounded-2xl">
+                  <div className="p-8 text-center text-slate-500 font-medium border border-dashed border-slate-800 rounded-2xl">
                     Tiada media dikonfigurasikan untuk playlist ini.
                   </div>
                 )}
@@ -2157,20 +2149,20 @@ export default function App() {
             </section>
 
             {/* 5. TV Bypass Link Generator */}
-            <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 space-y-6">
+            <section className="bg-slate-900 rounded-3xl shadow-xl border border-slate-800 p-8 space-y-6">
               <div className="flex items-center">
-                <LinkIcon className="h-7 w-7 text-blue-600 mr-2" />
+                <LinkIcon className="h-7 w-7 text-blue-400 mr-2" />
                 <h2 className="text-2xl font-bold tracking-tight">5. Jana Pautan Pintas TV (Bypass Google Auth)</h2>
               </div>
-              <p className="text-sm text-slate-500 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Gunakan pembina pautan ini untuk menjana URL khas bagi TV anda. Pautan ini membolehkan TV anda memaparkan skrin panggilan secara langsung **tanpa perlu log masuk dengan Google**.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Negeri</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Negeri</label>
                   <select
-                    className="w-full p-3.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-800"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white"
                     value={genState}
                     onChange={(e) => {
                       setGenState(e.target.value);
@@ -2184,10 +2176,10 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Daerah</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Daerah</label>
                   <select
                     disabled={!genState}
-                    className="w-full p-3.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-800 disabled:opacity-50"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
                     value={genDistrict}
                     onChange={(e) => {
                       setGenDistrict(e.target.value);
@@ -2200,10 +2192,10 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Klinik Kesihatan</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Klinik Kesihatan</label>
                   <select
                     disabled={!genDistrict}
-                    className="w-full p-3.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-800 disabled:opacity-50"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
                     value={genClinic}
                     onChange={(e) => setGenClinic(e.target.value)}
                   >
@@ -2213,10 +2205,10 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Jabatan / Zon</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Jabatan / Zon</label>
                   <select
                     disabled={!genClinic}
-                    className="w-full p-3.5 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-800 disabled:opacity-50"
+                    className="w-full p-3.5 border border-slate-800 rounded-xl bg-slate-950 font-bold text-white disabled:opacity-40"
                     value={genDept}
                     onChange={(e) => setGenDept(e.target.value)}
                   >
@@ -2227,14 +2219,14 @@ export default function App() {
               </div>
 
               {genState && genDistrict && genClinic && genDept && (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="overflow-hidden w-full">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Pautan Dijana:</p>
-                    <p className="text-xs text-indigo-600 font-mono truncate select-all mt-1 bg-white p-3 border rounded-xl shadow-inner">{generateBypassLink()}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Pautan Dijana:</p>
+                    <p className="text-xs text-indigo-400 font-mono truncate select-all mt-1 bg-slate-900 p-3 border border-slate-800 rounded-xl shadow-inner">{generateBypassLink()}</p>
                   </div>
                   <button
                     onClick={copyBypassLinkToClipboard}
-                    className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl shrink-0 flex items-center justify-center space-x-2 transition-all shadow-lg active:scale-95"
+                    className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-6 rounded-2xl shrink-0 flex items-center justify-center space-x-2 transition-all shadow-lg active:scale-95"
                   >
                     {copiedLink ? (
                       <>
