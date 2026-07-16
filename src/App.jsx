@@ -27,7 +27,7 @@ import {
   GoogleAuthProvider,
   signInWithRedirect,
   getRedirectResult,
-  signInWithPopup, // <-- Ditambah bagi menyelesaikan ralat "signInWithPopup is not defined"
+  signInWithPopup,
   signOut
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -149,7 +149,7 @@ function pcmToWav(pcm16Data, sampleRate) {
 const Modal = ({ isOpen, title, message, onConfirm, onCancel, type = 'confirm' }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-slate-955/65 backdrop-blur-md flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900 rounded-3xl p-8 w-full max-w-md border border-slate-800 shadow-2xl">
         <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
         <p className="text-slate-300 mb-6 text-sm">{message}</p>
@@ -681,23 +681,37 @@ const OutputScreen = ({
       silentCheck.volume = 0;
       window.speechSynthesis.speak(silentCheck);
     }
+    // Save chosen department to localstorage to avoid re-asking on TV reboots
+    localStorage.setItem('qms_tv_cached_dept', selectedDept);
     setSetupDone(true);
   };
 
-  // TV Auto-Launch Hook: If in TV bypass query mode and all states are populated, auto start TV engine
   useEffect(() => {
     const isBypassMode = getQueryParam('mode') === 'tv';
-    if (isBypassMode && selectedState && selectedDistrict && selectedClinic && selectedDept && !setupDone) {
-      handleStartTV();
+    if (isBypassMode && selectedState && selectedDistrict && selectedClinic) {
+      const cachedDept = localStorage.getItem('qms_tv_cached_dept');
+      if (cachedDept) {
+        setSelectedDept(cachedDept);
+        setSetupDone(true);
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext && !audioCtxRef.current) {
+          audioCtxRef.current = new AudioContext();
+        }
+      }
     }
-  }, [selectedState, selectedDistrict, selectedClinic, selectedDept, setupDone]);
+  }, [selectedState, selectedDistrict, selectedClinic]);
+
+  const handleClearSetupAndReset = () => {
+    localStorage.removeItem('qms_tv_cached_dept');
+    setSetupDone(false);
+  };
 
   if (!setupDone) {
     return (
       <div className="min-h-screen bg-slate-955 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 text-white">
-          <h2 className="text-2xl font-bold mb-2 text-center">Konfigurasi TV Display</h2>
-          <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6">
+        <div className="w-full max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 text-white animate-in fade-in zoom-in duration-300">
+          <h2 className="text-2xl font-black text-center text-white">Konfigurasi TV Display</h2>
+          <p className="text-xs text-indigo-400 text-center uppercase tracking-wider mb-6 font-bold">
             {isSuperadmin ? "Mod Superadmin" : "Mod Kakitangan Terselia"}
           </p>
 
@@ -708,7 +722,7 @@ const OutputScreen = ({
                   <label className="block text-sm font-semibold text-slate-400 mb-2">Negeri</label>
                   <select
                     style={selectActiveStyle}
-                    className="w-full p-4 border rounded-2xl text-white outline-none"
+                    className="w-full p-4 border rounded-2xl text-white outline-none focus:ring-4 focus:ring-indigo-500"
                     value={selectedState}
                     onChange={(e) => {
                       setSelectedState(e.target.value);
@@ -726,7 +740,7 @@ const OutputScreen = ({
                   <select
                     disabled={!selectedState}
                     style={selectedState ? selectActiveStyle : selectDisabledStyle}
-                    className="w-full p-4 border rounded-2xl text-white outline-none"
+                    className="w-full p-4 border rounded-2xl text-white outline-none focus:ring-4 focus:ring-indigo-500"
                     value={selectedDistrict}
                     onChange={(e) => {
                       setSelectedDistrict(e.target.value);
@@ -743,7 +757,7 @@ const OutputScreen = ({
                   <select
                     disabled={!selectedDistrict}
                     style={selectedDistrict ? selectActiveStyle : selectDisabledStyle}
-                    className="w-full p-4 border rounded-2xl text-white outline-none"
+                    className="w-full p-4 border rounded-2xl text-white outline-none focus:ring-4 focus:ring-indigo-500"
                     value={selectedClinic}
                     onChange={(e) => setSelectedClinic(e.target.value)}
                   >
@@ -761,14 +775,15 @@ const OutputScreen = ({
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Jabatan (Zon)</label>
+              <label htmlFor="dept-spinner" className="block text-sm font-semibold text-slate-400 mb-2">PILIH JABATAN / ZON</label>
               <select
+                id="dept-spinner"
                 style={selectActiveStyle}
-                className="w-full p-4 border rounded-2xl text-white outline-none"
+                className="w-full p-4 border rounded-2xl text-white outline-none focus:ring-4 focus:ring-indigo-500 focus:border-indigo-500 font-bold"
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
               >
-                <option value="">Pilih...</option>
+                <option value="">Pilih Jabatan...</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -776,14 +791,14 @@ const OutputScreen = ({
             <div className="pt-4 flex space-x-3">
               <button
                 onClick={() => setCurrentView('login')}
-                className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-700 transition-colors"
+                className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-700 transition-colors focus:ring-4 focus:ring-slate-500 focus:outline-none"
               >
                 Kembali
               </button>
               <button
                 disabled={!selectedState || !selectedDistrict || !selectedClinic || !selectedDept}
                 onClick={handleStartTV}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-emerald-500 flex items-center justify-center transition-colors shadow-lg"
+                className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl disabled:opacity-50 hover:bg-indigo-500 flex items-center justify-center transition-colors shadow-lg focus:ring-4 focus:ring-indigo-500 focus:outline-none"
               >
                 <Play className="h-5 w-5 mr-2" /> Mula TV
               </button>
@@ -812,10 +827,10 @@ const OutputScreen = ({
             <p className="text-slate-400 text-sm font-semibold tracking-widest uppercase">Sistem QMS</p>
           </div>
           <button
-            onClick={() => { setSetupDone(false); setCurrentView('login'); }}
+            onClick={handleClearSetupAndReset}
             className="text-xs bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-slate-300 transition-all font-semibold"
           >
-            Tutup TV Mode
+            Tukar Jabatan
           </button>
         </div>
       </header>
@@ -923,7 +938,6 @@ export default function App() {
 
   const getDocRef = () => doc(db, 'qms', 'state');
 
-  // Capture auth redirect result for WebViews (Google login redirects)
   useEffect(() => {
     getRedirectResult(auth)
       .then((result) => {
@@ -942,7 +956,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // TV Auto-Lock Hook: When user logged in, check user permissions and redirect directly to TV Output mode
   useEffect(() => {
     const isTvMode = getQueryParam('mode') === 'tv';
     if (!isTvMode || !user || !userPermissions) return;
@@ -1063,7 +1076,6 @@ export default function App() {
     try {
       const isTvMode = getQueryParam('mode') === 'tv';
       if (isTvMode) {
-        // WebView compatible standard redirect method (bypasses popup blockers)
         await signInWithRedirect(auth, googleProvider);
       } else {
         await signInWithPopup(auth, googleProvider);
@@ -1507,6 +1519,7 @@ export default function App() {
                             </td>
                             <td className="p-3">
                               <select
+                                id={`status-${u.uid}`}
                                 style={selectActiveStyle}
                                 className={`text-xs font-bold py-1.5 px-3 rounded-full border outline-none ${u.status === 'approved' ? 'bg-emerald-955/40 text-emerald-400 border-emerald-900/30' :
                                     u.status === 'rejected' ? 'bg-rose-955/40 text-rose-400 border-rose-900/30' :
@@ -1523,6 +1536,7 @@ export default function App() {
                             <td className="p-3 space-y-2">
                               <div className="flex flex-col sm:flex-row gap-2">
                                 <select
+                                  id={`state-assign-${u.uid}`}
                                   style={selectActiveStyle}
                                   className="text-xs p-2 rounded-lg outline-none w-32"
                                   value={userState}
@@ -1537,6 +1551,7 @@ export default function App() {
                                 </select>
 
                                 <select
+                                  id={`dist-assign-${u.uid}`}
                                   disabled={!userState}
                                   style={userState ? selectActiveStyle : selectDisabledStyle}
                                   className="text-xs p-2 rounded-lg outline-none w-32"
@@ -1551,6 +1566,7 @@ export default function App() {
                                 </select>
 
                                 <select
+                                  id={`clinic-assign-${u.uid}`}
                                   disabled={!userDistrict}
                                   style={userDistrict ? selectActiveStyle : selectDisabledStyle}
                                   className="text-xs p-2 rounded-lg outline-none w-44"
@@ -1594,6 +1610,7 @@ export default function App() {
 
                   <div className="flex space-x-2 mb-3">
                     <input
+                      id="input-hierarchy-state"
                       type="text"
                       placeholder="Negeri Baru..."
                       value={newHierarchyState}
@@ -1643,6 +1660,7 @@ export default function App() {
                     <>
                       <div className="flex space-x-2 mb-3">
                         <input
+                          id="input-hierarchy-district"
                           type="text"
                           placeholder={`Daerah Baru...`}
                           value={newHierarchyDistrict}
@@ -1696,6 +1714,7 @@ export default function App() {
                     <>
                       <div className="flex space-x-2 mb-3">
                         <input
+                          id="input-hierarchy-clinic"
                           type="text"
                           placeholder={`Klinik di ${adminSelectedDistrict}...`}
                           value={newClinicName}
@@ -1740,6 +1759,7 @@ export default function App() {
                 </div>
                 <div className="flex space-x-2">
                   <input
+                    id="input-dept-new"
                     type="text"
                     placeholder="Jabatan Baru..."
                     value={newDeptName}
@@ -1769,6 +1789,7 @@ export default function App() {
                 </div>
                 <div className="flex space-x-2">
                   <select
+                    id="select-media-type"
                     value={newMediaType}
                     onChange={(e) => setNewMediaType(e.target.value)}
                     style={selectActiveStyle}
@@ -1778,6 +1799,7 @@ export default function App() {
                     <option value="video">Video</option>
                   </select>
                   <input
+                    id="input-media-url"
                     type="text"
                     placeholder="Direct URL (.jpg, .mp4)"
                     value={newMediaUrl}
